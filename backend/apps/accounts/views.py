@@ -339,12 +339,13 @@ class AdminUserStatusView(APIView):
 class AdminDashboardStatsView(APIView):
     """
     Overview statistics for the Admin Dashboard.
-    Provides total player count, active players, game count, wallet balances, and deposit requests.
+    Provides total player count, active players, game count, wallet balances,
+    deposit requests, withdrawal requests, and match records.
     """
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        from apps.games.models import Game, MinesGameSession
+        from apps.games.models import Game, MinesGameSession, GamePlayRecord
         from apps.virtual_wallet.models import Wallet
         from apps.transactions.models import Transaction
 
@@ -356,6 +357,17 @@ class AdminDashboardStatsView(APIView):
         total_wallet_pool = Wallet.objects.aggregate(total=Sum("balance"))["total"] or Decimal("0.00")
         pending_deposits = Transaction.objects.filter(transaction_type="deposit", status="pending").count()
         total_deposits_approved = Transaction.objects.filter(transaction_type="deposit", status="success").aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+        
+        pending_withdrawals = Transaction.objects.filter(transaction_type="withdrawal", status="pending").count()
+        pending_withdrawals_amount = Transaction.objects.filter(transaction_type="withdrawal", status="pending").aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+        total_withdrawals_paid = Transaction.objects.filter(transaction_type="withdrawal", status="success").aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+        
+        total_matches = GamePlayRecord.objects.count()
+        matches_won = GamePlayRecord.objects.filter(result="won").count()
+        matches_lost = GamePlayRecord.objects.filter(result="lost").count()
+        total_bet_volume = GamePlayRecord.objects.aggregate(total=Sum("bet_amount"))["total"] or Decimal("0.00")
+        total_payout_volume = GamePlayRecord.objects.aggregate(total=Sum("payout_amount"))["total"] or Decimal("0.00")
+        
         total_mines_sessions = MinesGameSession.objects.count()
 
         return Response({
@@ -366,5 +378,13 @@ class AdminDashboardStatsView(APIView):
             "total_wallet_pool": str(total_wallet_pool),
             "pending_deposits": pending_deposits,
             "total_deposits_approved": str(total_deposits_approved),
+            "pending_withdrawals": pending_withdrawals,
+            "pending_withdrawals_amount": str(pending_withdrawals_amount),
+            "total_withdrawals_paid": str(total_withdrawals_paid),
+            "total_matches": total_matches,
+            "matches_won": matches_won,
+            "matches_lost": matches_lost,
+            "total_bet_volume": str(total_bet_volume),
+            "total_payout_volume": str(total_payout_volume),
             "total_mines_sessions": total_mines_sessions,
         })

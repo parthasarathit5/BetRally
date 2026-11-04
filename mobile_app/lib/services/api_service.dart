@@ -444,6 +444,68 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  // ---------------- ADMIN: WITHDRAWALS ----------------
+
+  static Future<Map<String, dynamic>> getAdminWithdrawals({
+    String status = '',
+    String search = '',
+    int page = 1,
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+
+    final uri = Uri.parse('$walletUrl/admin/withdrawals/').replace(
+      queryParameters: {
+        if (status.isNotEmpty) 'status': status,
+        if (search.isNotEmpty) 'search': search,
+        'page': '$page',
+      },
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    return _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> approveAdminWithdrawal({
+    required int transactionId,
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+
+    final response = await http.post(
+      Uri.parse('$walletUrl/admin/withdrawals/$transactionId/approve/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    return _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> rejectAdminWithdrawal({
+    required int transactionId,
+    String reason = 'Invalid UPI or account information',
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+
+    final response = await http.post(
+      Uri.parse('$walletUrl/admin/withdrawals/$transactionId/reject/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'reason': reason}),
+    );
+
+    return _handleResponse(response);
+  }
+
   static Future<Map<String, dynamic>> adminAdjustWallet({
     required int userId,
     required String action,

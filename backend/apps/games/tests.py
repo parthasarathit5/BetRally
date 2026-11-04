@@ -66,6 +66,10 @@ class GamesAndMinesTests(APITestCase):
         self.assertFalse(Game.objects.filter(id=game_id).exists())
 
     def test_mines_gameplay_flow(self):
+        # 0. Credit wallet with ₹100 for gameplay testing (new accounts start at ₹0)
+        wallet = Wallet.objects.get(user=self.player)
+        wallet.credit(Decimal("100.00"), description="Deposit for test")
+
         self.client.force_authenticate(user=self.player)
 
         # 1. Start session with ₹50 bet and 3 mines

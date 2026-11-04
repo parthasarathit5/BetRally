@@ -5,8 +5,11 @@ import 'mines_game_screen.dart';
 import 'chess_game_screen.dart';
 import 'cricket_game_screen.dart';
 import 'carrom_game_screen.dart';
-import 'rummy_game_screen.dart';
-import 'teen_patti_game_screen.dart';
+import 'galaxy_strike_screen.dart';
+import 'moto_rush_screen.dart';
+import 'tower_defense_screen.dart';
+import 'puzzle_2048_screen.dart';
+import 'zombie_survival_screen.dart';
 import 'football_game_screen.dart';
 import 'aviator_game_screen.dart';
 import 'card_games_screens.dart';
@@ -86,6 +89,10 @@ class _GamesScreenState extends State<GamesScreen> {
       case 'flash_on': return Icons.flash_on;
       case 'my_location': return Icons.my_location;
       case 'track_changes': return Icons.track_changes;
+      case 'two_wheeler': return Icons.two_wheeler;
+      case 'shield': return Icons.shield;
+      case 'grid_view': return Icons.grid_view;
+      case 'security': return Icons.security;
       default: return Icons.sports_esports;
     }
   }
@@ -131,14 +138,20 @@ class _GamesScreenState extends State<GamesScreen> {
       case 'carrom':
         screen = CarromGameScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
         break;
-      case 'rummy':
-        screen = RummyGameScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
+      case 'galaxy-strike':
+        screen = GalaxyStrikeScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
         break;
-      case 'teen-patti':
-        screen = TeenPattiGameScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
+      case 'moto-rush':
+        screen = MotoRushScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
         break;
-      case 'poker':
-        screen = PokerGameScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
+      case 'tower-defense':
+        screen = TowerDefenseScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
+        break;
+      case 'puzzle-2048':
+        screen = Puzzle2048Screen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
+        break;
+      case 'zombie-survival':
+        screen = ZombieSurvivalScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
         break;
       case 'football':
         screen = FootballGameScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
@@ -146,14 +159,8 @@ class _GamesScreenState extends State<GamesScreen> {
       case 'ludo':
         screen = SpeedLudoScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
         break;
-      case 'pool':
-        screen = Pool8BallScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
-        break;
       case 'aviator':
         screen = AviatorGameScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
-        break;
-      case 'andar-bahar':
-        screen = AndarBaharScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);
         break;
       case 'blackjack':
         screen = BlackjackGameScreen(userBalance: userBalance, entryFee: entryFee, onGameFinished: onGameReturned);

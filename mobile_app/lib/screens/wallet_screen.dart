@@ -343,8 +343,92 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
+  void showWithdrawConfirmationDialog({
+    required double amount,
+    required String refId,
+    required String waUrl,
+    required String adminPhone,
+    required String upi,
+  }) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: teal, size: 28),
+            SizedBox(width: 10),
+            Text('Withdrawal Submitted', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Amount: ₹${amount.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: pink),
+            ),
+            const SizedBox(height: 6),
+            Text('UPI / Account: $upi', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Text('Reference ID: ', style: TextStyle(color: Colors.white60)),
+                SelectableText(
+                  refId,
+                  style: const TextStyle(color: gold, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.copy, size: 16, color: Colors.white54),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: refId));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Reference ID copied!')),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Admin WhatsApp: $adminPhone\n\nTap below to notify Admin on WhatsApp. Once Admin verifies your account details, payout will be sent directly to your UPI ID!',
+              style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: Colors.white54)),
+          ),
+          if (waUrl.isNotEmpty)
+            FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: green, foregroundColor: Colors.black),
+              icon: const Icon(Icons.chat, size: 18, color: Colors.black),
+              label: const Text('NOTIFY ADMIN ON WHATSAPP', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final uri = Uri.parse(waUrl);
+                try {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } catch (_) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Could not open WhatsApp automatically. Contact: $adminPhone')),
+                    );
+                  }
+                }
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
   void showWithdrawDialog() {
-    final amountController = TextEditingController(text: '50');
+    final amountController = TextEditingController(text: '500');
     final upiController = TextEditingController(text: 'user@upi');
     bool isSubmitting = false;
 
@@ -424,15 +508,15 @@ class _WalletScreenState extends State<WalletScreen> {
                               final messenger = ScaffoldMessenger.of(this.context);
                               final modalNavigator = Navigator.of(context);
 
-                              if (amt < 10.0) {
+                              if (amt < 500.0) {
                                 messenger.showSnackBar(
-                                  const SnackBar(content: Text('Minimum withdrawal is ₹10.00')),
+                                  const SnackBar(content: Text('Minimum withdrawal amount is ₹500.00')),
                                 );
                                 return;
                               }
                               if (amt > balance) {
                                 messenger.showSnackBar(
-                                  const SnackBar(content: Text('Insufficient wallet balance')),
+                                  SnackBar(content: Text('Insufficient balance. You have ₹${balance.toStringAsFixed(2)}')),
                                 );
                                 return;
                               }
@@ -444,17 +528,24 @@ class _WalletScreenState extends State<WalletScreen> {
                                   accountInfo: upiController.text.trim(),
                                 );
                                 modalNavigator.pop();
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text(res['message']?.toString() ?? 'Withdrawal processed!'),
-                                    backgroundColor: purple,
-                                  ),
-                                );
+                                final waUrl = res['whatsapp_url']?.toString() ?? '';
+                                final refId = res['reference_id']?.toString() ?? '';
+                                final adminPhone = res['admin_phone']?.toString() ?? adminWhatsApp;
+
+                                if (mounted) {
+                                  showWithdrawConfirmationDialog(
+                                    amount: amt,
+                                    refId: refId,
+                                    waUrl: waUrl,
+                                    adminPhone: adminPhone,
+                                    upi: upiController.text.trim(),
+                                  );
+                                }
                                 loadWalletData();
                               } catch (err) {
                                 setModalState(() => isSubmitting = false);
                                 messenger.showSnackBar(
-                                  SnackBar(content: Text('Withdrawal failed: $err')),
+                                  SnackBar(content: Text('Withdrawal request failed: $err')),
                                 );
                               }
                             },

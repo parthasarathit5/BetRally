@@ -10,6 +10,6 @@ def create_user_wallet(sender, instance, created, **kwargs):
     if created:
         wallet, _ = Wallet.objects.get_or_create(
             user=instance,
-            defaults={"balance": Decimal("100.00")},
+            defaults={"balance": Decimal("0.00")},
         )
 

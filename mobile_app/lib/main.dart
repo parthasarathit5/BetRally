@@ -9,6 +9,8 @@ import 'screens/profile_screen.dart';
 import 'screens/admin_deposits_screen.dart';
 import 'screens/admin_games_screen.dart';
 import 'screens/admin_matches_screen.dart';
+import 'screens/admin_withdrawals_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() => runApp(const WinPlayApp());
 
@@ -19,6 +21,7 @@ const pink = Color(0xFFFF4FA3);
 const blue = Color(0xFF398BFF);
 const teal = Color(0xFF21D6B5);
 const gold = Color(0xFFFFC857);
+const cyan = Color(0xFF00E5FF);
 
 class WinPlayApp extends StatelessWidget {
   const WinPlayApp({super.key});
@@ -929,6 +932,50 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void showHomeLowBalanceDialog(String gameName, double fee) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: gold, size: 28),
+            SizedBox(width: 10),
+            Text('Insufficient Balance', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Required Entry: ₹${fee.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white)),
+            Text('Your Balance: ₹${walletBalance.toStringAsFixed(2)}', style: const TextStyle(color: pink, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            const Text(
+              'Your wallet balance is 0 or less than entry fee. To play games, contact Admin on WhatsApp to deposit funds.',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.black),
+            icon: const Icon(Icons.chat, size: 16, color: Colors.black),
+            label: const Text('ADD MONEY VIA WHATSAPP', style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final msg = 'Hello Admin, I want to add cash to play games on BetRally/WinPlay. Please credit my wallet.';
+              final url = 'https://wa.me/917780383832?text=${Uri.encodeComponent(msg)}';
+              await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
@@ -1050,6 +1097,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: const Icon(Icons.diamond, color: Colors.black),
                   label: const Text('PLAY MINES NOW', style: TextStyle(fontWeight: FontWeight.bold)),
                   onPressed: () {
+                    if (walletBalance < 50.0 || walletBalance <= 0) {
+                      showHomeLowBalanceDialog('Mines Arcade', 50.0);
+                      return;
+                    }
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -1086,6 +1137,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: InkWell(
                   onTap: () {
+                    if (walletBalance < 50.0 || walletBalance <= 0) {
+                      showHomeLowBalanceDialog('Mines Arcade', 50.0);
+                      return;
+                    }
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -1439,6 +1494,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     : null,
                 onTap: () => Navigator.push(context, MaterialPageRoute(
                   builder: (_) => const AdminDepositsScreen(),
+                )).then((_) => loadDashboardStats()),
+              ),
+              _AdminFeatureTile(
+                icon: Icons.account_balance_wallet,
+                title: 'Withdrawal Requests (Min ₹500)',
+                subtitle: 'Inspect player UPI details, approve & process payouts',
+                badgeText: (stats != null && (stats!['pending_withdrawals'] as int? ?? 0) > 0)
+                    ? '${stats!['pending_withdrawals']} PENDING'
+                    : null,
+                onTap: () => Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => const AdminWithdrawalsScreen(),
                 )).then((_) => loadDashboardStats()),
               ),
               _AdminFeatureTile(

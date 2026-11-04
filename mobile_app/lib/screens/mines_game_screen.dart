@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
@@ -19,7 +19,7 @@ class MinesGameScreen extends StatefulWidget {
 }
 
 class _MinesGameScreenState extends State<MinesGameScreen> {
-  double walletBalance = 100.0;
+  double walletBalance = 0.0;
   double betAmount = 20.0;
   int mineCount = 3;
 
@@ -49,7 +49,7 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
       final res = await ApiService.getWallet();
       if (!mounted) return;
       setState(() {
-        walletBalance = double.tryParse(res['balance']?.toString() ?? '100') ?? 100.0;
+        walletBalance = double.tryParse(res['balance']?.toString() ?? '0') ?? 0.0;
       });
       widget.onWalletChanged?.call();
     } catch (_) {}
@@ -85,10 +85,8 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
   }
 
   Future<void> startGame() async {
-    if (walletBalance < betAmount) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Insufficient balance. Please add cash to your wallet.')),
-      );
+    if (walletBalance < betAmount || walletBalance <= 0) {
+      showLowBalanceDialog();
       return;
     }
 
@@ -115,16 +113,11 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
       });
       widget.onWalletChanged?.call();
     } catch (err) {
-      // Local fallback simulation if backend is not reachable
-      final rng = Random();
-      final mines = <int>{};
-      while (mines.length < mineCount) {
-        mines.add(rng.nextInt(25));
-      }
-      mineLocations = mines.toList();
-      setState(() {
-        walletBalance = max(0, walletBalance - betAmount);
-      });
+      setState(() => isPlaying = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not start game: $err')),
+      );
     }
   }
 
@@ -235,6 +228,50 @@ class _MinesGameScreenState extends State<MinesGameScreen> {
       });
       showWinDialog();
     }
+  }
+
+  void showLowBalanceDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: gold, size: 28),
+            SizedBox(width: 10),
+            Text('Insufficient Balance', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Bet Amount: ₹${betAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white)),
+            Text('Current Balance: ₹${walletBalance.toStringAsFixed(2)}', style: const TextStyle(color: pink, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            const Text(
+              'Your wallet balance must be equal or greater than the bet amount to play. Contact Admin on WhatsApp to deposit cash.',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.black),
+            icon: const Icon(Icons.chat, size: 16, color: Colors.black),
+            label: const Text('ADD CASH VIA WHATSAPP', style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final msg = 'Hello Admin, I want to add cash to play Mines Arcade on BetRally/WinPlay. Please credit my wallet.';
+              final url = 'https://wa.me/917780383832?text=${Uri.encodeComponent(msg)}';
+              await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void showBustedDialog() {

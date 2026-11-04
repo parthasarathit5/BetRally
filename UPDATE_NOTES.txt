@@ -6,139 +6,97 @@ This document details all new features, architecture changes, files added,
 database configuration (Supabase PostgreSQL), and verification steps completed.
 
 --------------------------------------------------------------------------------
-1. SUMMARY OF NEW FEATURES & ARCHITECTURE
+1. SUMMARY OF LATEST ENHANCEMENTS & SECURITY RULES
 --------------------------------------------------------------------------------
 
-A. SUPABASE POSTGRESQL DATABASE CONFIGURATION:
-   - Configured `dj-database-url` and `psycopg2` in `backend/config/settings.py`.
-   - Connected live connection string:
-     `postgresql://postgres.zcslpyqbusbdsggrdtma:Supabase%40123@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres`
-   - SSL Enforcement: `ssl_require=True` and `conn_max_age=600` for Supabase connection pooling.
-   - Migrations executed directly on Supabase PostgreSQL (accounts, virtual_wallet, transactions, games, game_play_records).
-   - Seeded Admin superuser (`parthasarathit4@gmail.com` / `Admin123!`) and Test Player (`user1@gmail.com` / `User123!`).
+A. 5 STRATEGIC 10-MINUTE GAMES DEPLOYED (REPLACED CARD/POOL GAMES):
+   - Purged unwanted card & pool games: Texas Hold'em, Teen Patti, Rummy, 8-Ball Pool, Andar Bahar.
+   - Deployed 5 high-engagement, deep-strategy 10-minute games:
+     1. Galaxy Strike (`galaxy_strike_screen.dart`): 10-Minute tactical space shooter. Starfield physics, dual lasers, shields, 5 enemy waves and Mothership Boss.
+     2. Moto Rush (`moto_rush_screen.dart`): High-octane highway superbike racer. 10-minute speed endurance, 3 lanes of traffic, nitro boost gauge, collision physics.
+     3. Kingdom Tower Defense (`tower_defense_screen.dart`): 10-Minute strategic castle defense. S-curve road, build Archer/Magic/Cannon towers, gold economy, 10 enemy invasion waves.
+     4. 2048 Mega Blitz (`puzzle_2048_screen.dart`): 10-Minute numerical mind battle. 4x4 tile merge grid with gesture swipe & directional controls, undo history, score multiplier.
+     5. Zombie Outbreak Arena (`zombie_survival_screen.dart`): 10-Minute commando survival challenge. Top-down arena, 360-degree shooting, ammo scavenging, medkits, surviving until extraction.
 
-B. STRICT ADMIN WHATSAPP DEPOSIT FLOW (+91 7780383832):
-   - Player self-credit is strictly disabled for security.
-   - Tapping "Add Cash" redirects the player to Admin WhatsApp: `+91 7780383832` (`7780383832`).
-   - Generates authorized WhatsApp link:
-     "Hello Admin, I want to add money to my BetRally / WinPlay wallet.
-      Player: <username> (ID: <user_id>)
-      Email: <email>
-      Amount: ₹<amount>
-      Deposit Ref: WA-DEP-XXXXXX
-      I have transferred the amount. Please verify and credit my wallet."
-   - Opens WhatsApp directly via `url_launcher`.
-   - Admin Dashboard Deposit Approval Screen (`AdminDepositsScreen`):
-     * Admin inspects player, requested amount, and reference ID.
-     * 1-Click "APPROVE & CREDIT": Atomically credits player's wallet in Supabase.
-     * "REJECT" with reason logging.
+B. ZERO FREE PLAY & PRE-GAME WALLET BALANCE SAFEGUARD:
+   - Default signup wallet balance set to strictly ₹0.00 (in `signals.py`).
+   - Offline free play fallback disabled.
+   - Every game requires an entry fee (₹25 - ₹50).
+   - Before launching ANY game from Home or Games Catalog:
+     * System checks if `wallet_balance < game.entry_fee` or `wallet_balance <= 0`.
+     * If insufficient: Game launch is BLOCKED immediately.
+     * Displays Insufficient Balance dialog with direct button:
+       "ADD MONEY VIA WHATSAPP (+91 7780383832)".
 
-C. PRE-GAME WALLET BALANCE SAFEGUARD:
-   - Before launching ANY game, the system queries the live Supabase wallet balance.
-   - If `wallet_balance < game.entry_fee`:
-     * Game launch is BLOCKED immediately.
-     * High-visibility warning dialog: "INSUFFICIENT BALANCE".
-     * Shows required Entry Fee vs Current Balance.
-     * Direct 1-click button: "ADD MONEY VIA WHATSAPP (+91 7780383832)".
+C. WITHDRAWAL RULES (MINIMUM ₹500 & ADMIN WHATSAPP TRANSFER):
+   - Minimum withdrawal amount enforced: ₹500.00 (`amount >= 500`).
+   - Withdrawals held in pending escrow and debited atomically from wallet.
+   - Generates WhatsApp transfer request to Admin `+91 7780383832` (`7780383832`) with:
+     * Player Username & User ID
+     * Withdrawal Amount (₹500+)
+     * UPI ID / Bank Details
+     * Unique Reference ID (e.g. WA-WTH-XXXXXXXX)
+   - Admin Dashboard Withdrawal Management (`AdminWithdrawalsScreen`):
+     * View Pending, Completed, Rejected requests.
+     * 1-Click "APPROVE & PAID" marks payout sent.
+     * "REJECT & REFUND" automatically refunds the balance back into player's wallet!
 
-D. MATCH ACTIVITY TRACKING & PRIZE CLAIM VIA WHATSAPP:
-   - When any match finishes (Win / Loss / Draw):
-     * Match results are immediately posted to `POST /api/games/record-match/`.
-     * Automatically saved in Supabase `GamePlayRecord` table (User, Game Name, Bet, Payout, Result, Score Details, Reference ID, Timestamp).
-     * Atomic debit of entry fee and credit of payout to player's wallet.
-     * Unique Match Reference ID generated (e.g. MTR-XXXXXX).
-     * Player is provided 1-click "CLAIM / REPORT TO ADMIN" button to WhatsApp `+91 7780383832`.
-   - Admin Match Activity Screen (`AdminMatchesScreen`):
-     * Accessible from Admin Dashboard -> "Player Match Activities".
-     * Search by player username/email or filter by result (Won, Lost, Draw).
-     * Displays bet, payout, net profit/loss, and timestamp.
+D. MATCH ACTIVITY TRACKING & DUAL WIN/LOSS FLOW:
+   - When a match finishes:
+     * Saved immediately in Supabase `GamePlayRecord` table via `POST /api/games/record-match/`.
+   - If Player WINS:
+     * Victory dialog displays prize (2x payout) and Match Ref ID.
+     * Button: "CLAIM PRIZE ON WHATSAPP (+91 7780383832)" directs to Admin to receive cash.
+   - If Player LOSES:
+     * Defeat dialog displays match record and "Better Luck Next Round!".
+     * No WhatsApp claim button is shown.
+     * Offers "Try Again" or "Exit to Lobby".
 
-E. 20 PLAYABLE REAL GAMES IMPLEMENTED:
-   1. Mines Arcade (`mines_game_screen.dart`): 5x5 grid, dynamic multiplier, gems & bombs, cashout.
-   2. Blitz Chess (`chess_game_screen.dart`): 8x8 board, legal move validation, AI opponent, timers, checkmate detection.
-   3. Cricket Batting Challenge (`cricket_game_screen.dart`): Bowler deliveries, timing meter, Drive/Loft/Pull/Cut shots, runs & wickets chase.
-   4. Carrom Board (`carrom_game_screen.dart`): Wooden board, White/Black/Queen coins, baseline striker positioning, aim ray, power slider, physics & collision engine.
-   5. 13-Card Indian Rummy (`rummy_game_screen.dart`): 13-card hand, Wild Joker, draw open/closed, discard, pure sequence validation, declare show.
-   6. Teen Patti 3-Card (`teen_patti_game_screen.dart`): 3-card showdown, Trail/Sequence/Color evaluation, Chaal, Blind, Pack, Show.
-   7. Texas Hold'em Poker (`card_games_screens.dart`): Hole cards, Flop, Turn, River, Call/Fold, Showdown evaluation.
-   8. Speed Football (`football_game_screen.dart`): Penalty shootout, goalkeeper diving AI, 5 target zones, 5 rounds.
-   9. Speed Ludo (`arcade_games_screens.dart`): Dice roll, token race, home finish.
-   10. 8-Ball Pool (`arcade_games_screens.dart`): Billiards table, cue ball strike, ball potting.
-   11. Aviator Crash (`aviator_game_screen.dart`): Real-time ascending multiplier flight, crash point, live cashout.
-   12. Andar Bahar (`card_games_screens.dart`): Joker card, betting on Andar/Bahar, alternating deal.
-   13. Blackjack 21 (`card_games_screens.dart`): Player & Dealer hands, Hit, Stand, 21 evaluation.
-   14. European Roulette (`arcade_games_screens.dart`): 37-number European wheel, Red/Black/Green bets.
-   15. Call Break (`card_games_screens.dart`): 13 cards, Spades trump, trick bidding.
-   16. Snakes & Ladders (`arcade_games_screens.dart`): 100 tiles, snakes & ladders jump logic.
-   17. Fruit Slice (`arcade_games_screens.dart`): Fruit slicing arcade, bomb hazard.
-   18. Knife Hit (`arcade_games_screens.dart`): Target log, knife throw, collision avoidance.
-   19. Archery Master (`arcade_games_screens.dart`): Bow release, rings scoring.
-   20. Bottle Shoot (`arcade_games_screens.dart`): Target glass bottles shooting.
-
-F. FORGOT PASSWORD & EMAIL DELIVERY SYSTEM:
-   - Real Email Sending: Configured Django SMTP mail delivery with HTML email templates.
-   - Branded Email Template: WinPlay dark/neon gradient styled HTML template with 6-digit OTP code box.
-   - Environment Configuration (.env & .env.example): Automatically loaded via python-dotenv.
-   - 60-Second Resend Timer on OTP screen.
-
-G. EXPLORE GAMES & NAVIGATION INTEGRATION:
-   - Main BottomNavigationBar: 4 fully working tabs (Home, Games, Wallet, Profile).
-   - Live Wallet Pill in AppBar: Displays current balance across screens. Tapping it jumps directly to Wallet tab.
-   - Admin Dashboard: Direct access to Games Management, Deposit Requests, Player Inspection, and Player Match Activities.
+E. UPGRADED ADMIN DASHBOARD COMMAND CENTER:
+   - 6 Live Real-Time Platform KPI Cards:
+     1. Total Players
+     2. Active Games (20 real games)
+     3. Total Wallet Pool (₹)
+     4. Pending Deposits (Gold badge)
+     5. Pending Withdrawals (Pink badge)
+     6. Total Match Volume & Stats
+   - Dedicated Feature Management:
+     * User Management (Balance inspection & adjustments)
+     * Deposit Requests & Approvals
+     * Withdrawal Requests (Min ₹500 verification & refunds)
+     * Game Management (Active toggles, entry fee updates)
+     * Player Match Activity & Results Audit (Search by player, filter wins/losses)
+     * Platform Financial Summary Dialog
 
 --------------------------------------------------------------------------------
-2. FILES ADDED & MODIFIED
+2. ALL 20 REAL ACTIVE GAMES IN SUPABASE CATALOG
 --------------------------------------------------------------------------------
-
-BACKEND FILES:
-- backend/config/settings.py: Added Supabase dj_database_url config, ADMIN_WHATSAPP_NUMBER, .env loader, full SMTP settings, test suite in-memory DB runner.
-- backend/config/urls.py: Added /api/wallet/ and /api/games/ routes.
-- backend/.env.example: Environment variable template for Supabase, WhatsApp, Gmail SMTP.
-- backend/.env: Local environment configuration (Supabase PostgreSQL password encoded).
-- backend/apps/virtual_wallet/views.py: Added WhatsApp deposit request and Admin approval APIs.
-- backend/apps/virtual_wallet/urls.py: Added WhatsApp and Admin deposit routes.
-- backend/apps/virtual_wallet/models.py: Implemented Wallet model with atomic credit/debit.
-- backend/apps/virtual_wallet/serializers.py: Serializers for wallet, deposit, withdraw.
-- backend/apps/virtual_wallet/admin.py: Registered Wallet in Django Admin.
-- backend/apps/virtual_wallet/signals.py: Auto-creates ₹100 wallet for new signups.
-- backend/apps/transactions/models.py: Implemented Transaction audit log model.
-- backend/apps/transactions/admin.py: Registered Transaction in Django Admin.
-- backend/apps/games/models.py: Added MinesGameSession, Game entry_fee field, and GamePlayRecord model.
-- backend/apps/games/mines_logic.py: Provably fair multiplier calculation logic.
-- backend/apps/games/views.py: Mines game APIs, record_match_view, and admin_match_records_view.
-- backend/apps/games/urls.py: Added record-match and admin match history routes.
-- backend/apps/games/admin.py: Registered MinesGameSession, Game, and GamePlayRecord in Django Admin.
-- backend/apps/games/migrations/0003_game_entry_fee_gameplayrecord.py: Supabase migration for match tracking and fees.
-- backend/apps/games/management/commands/seed_games.py: Seeds all 20 real games with entry fees in Supabase.
-- backend/Procfile, backend/build.sh, render.yaml: Production deployment manifests.
-
-MOBILE APP (FLUTTER) FILES:
-- mobile_app/pubspec.yaml: Added url_launcher for WhatsApp redirection.
-- mobile_app/lib/services/api_service.dart: Added recordMatch, getAdminMatches, WhatsApp deposit & approval APIs.
-- mobile_app/lib/screens/wallet_screen.dart: WhatsApp deposit redirection to +91 7780383832 with user ID and ref ID.
-- mobile_app/lib/screens/admin_deposits_screen.dart: Admin deposit approvals screen.
-- mobile_app/lib/screens/admin_matches_screen.dart: Admin match history and player activity tracking screen.
-- mobile_app/lib/screens/admin_games_screen.dart: Full CRUD for games catalog.
-- mobile_app/lib/screens/games_screen.dart: 20-game catalog, search, filter, and balance check safeguards.
-- mobile_app/lib/screens/mines_game_screen.dart: 5x5 Mines arcade game screen.
-- mobile_app/lib/screens/chess_game_screen.dart: Blitz Chess vs AI opponent.
-- mobile_app/lib/screens/cricket_game_screen.dart: Cricket Batting Challenge.
-- mobile_app/lib/screens/carrom_game_screen.dart: Carrom Board Physics & Striker.
-- mobile_app/lib/screens/rummy_game_screen.dart: 13-Card Indian Rummy.
-- mobile_app/lib/screens/teen_patti_game_screen.dart: Teen Patti 3-Card Showdown.
-- mobile_app/lib/screens/football_game_screen.dart: Speed Football Penalty Shootout.
-- mobile_app/lib/screens/aviator_game_screen.dart: Aviator Multiplier Crash.
-- mobile_app/lib/screens/card_games_screens.dart: Texas Hold'em Poker, Blackjack 21, Andar Bahar, Call Break.
-- mobile_app/lib/screens/arcade_games_screens.dart: Speed Ludo, 8-Ball Pool, European Roulette, Snakes & Ladders, Fruit Slice, Knife Hit, Archery Master, Bottle Shoot.
-- mobile_app/lib/screens/profile_screen.dart: Player profile, stats, logout.
-- mobile_app/lib/main.dart: 4 core tabs, Admin Dashboard links, live wallet pill.
+1. Mines Arcade (`mines_game_screen.dart`) - Entry: ₹50.00
+2. Blitz Chess (`chess_game_screen.dart`) - Entry: ₹50.00
+3. Cricket Clash (`cricket_game_screen.dart`) - Entry: ₹50.00
+4. Carrom King (`carrom_game_screen.dart`) - Entry: ₹40.00
+5. Galaxy Strike (`galaxy_strike_screen.dart`) - Entry: ₹50.00
+6. Moto Rush (`moto_rush_screen.dart`) - Entry: ₹40.00
+7. Kingdom Tower Defense (`tower_defense_screen.dart`) - Entry: ₹50.00
+8. Speed Football (`football_game_screen.dart`) - Entry: ₹40.00
+9. Speed Ludo (`arcade_games_screens.dart`) - Entry: ₹30.00
+10. 2048 Mega Blitz (`puzzle_2048_screen.dart`) - Entry: ₹30.00
+11. Aviator Crash (`aviator_game_screen.dart`) - Entry: ₹50.00
+12. Zombie Outbreak (`zombie_survival_screen.dart`) - Entry: ₹50.00
+13. Blackjack 21 (`card_games_screens.dart`) - Entry: ₹50.00
+14. European Roulette (`arcade_games_screens.dart`) - Entry: ₹30.00
+15. Call Break (`card_games_screens.dart`) - Entry: ₹40.00
+16. Snakes & Ladders (`arcade_games_screens.dart`) - Entry: ₹30.00
+17. Fruit Slice (`arcade_games_screens.dart`) - Entry: ₹25.00
+18. Knife Hit (`arcade_games_screens.dart`) - Entry: ₹25.00
+19. Archery Master (`arcade_games_screens.dart`) - Entry: ₹30.00
+20. Bottle Shoot (`arcade_games_screens.dart`) - Entry: ₹30.00
 
 --------------------------------------------------------------------------------
-3. VERIFICATION & QUALITY CHECKS
+3. VERIFICATION & QUALITY STATUS
 --------------------------------------------------------------------------------
-- Django Automated Test Suite: 12 / 12 PASSING (Ran in 1.4s, OK).
+- Django Automated Test Suite: 13 / 13 PASSING (Ran in 46s, OK).
 - Flutter Analyze: 0 errors, 0 warnings (No issues found!).
-- Supabase PostgreSQL: Fully migrated and seeded with 20 real games.
-- Local Servers: Django running on 127.0.0.1:8000, Flutter Web running on 127.0.0.1:3000.
-
+- Supabase Cloud Database: Fully synced with all 20 real games.
+- GitHub Origin Main: Pushed and synchronized.
 ================================================================================
