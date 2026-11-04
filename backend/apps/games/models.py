@@ -24,6 +24,11 @@ class Game(models.Model):
     )
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
+    entry_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("10.00"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -74,3 +79,33 @@ class MinesGameSession(models.Model):
 
     def __str__(self):
         return f"Mines Session #{self.id} - {self.user.email} - Bet ₹{self.bet_amount} ({self.status})"
+
+
+class GamePlayRecord(models.Model):
+    RESULT_CHOICES = [
+        ("win", "Win"),
+        ("loss", "Loss"),
+        ("draw", "Draw"),
+        ("cashed_out", "Cashed Out"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="game_records",
+    )
+    game_name = models.CharField(max_length=100)
+    game_slug = models.CharField(max_length=120)
+    bet_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    payout_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    result = models.CharField(max_length=20, choices=RESULT_CHOICES)
+    score_details = models.JSONField(default=dict, blank=True)
+    reference_id = models.CharField(max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.game_name} ({self.result.upper()}) Bet: ₹{self.bet_amount} Payout: ₹{self.payout_amount}"
+

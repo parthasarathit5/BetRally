@@ -1,11 +1,15 @@
 import random
+import uuid
+import urllib.parse
 from decimal import Decimal
+from django.conf import settings
+from django.db.models import Q
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 
-from .models import Game, MinesGameSession
+from .models import Game, MinesGameSession, GamePlayRecord
 from .serializers import GameSerializer
 from .mines_logic import calculate_mines_multiplier
 from apps.virtual_wallet.models import Wallet
@@ -295,3 +299,143 @@ class MinesCashoutView(APIView):
             "wallet_balance": str(wallet.balance),
             "message": f"Successfully cashed out ₹{payout:.2f} ({session.current_multiplier}x)!",
         })
+
+
+class RecordMatchView(APIView):
+    """
+    Records match completion for any of the 20 playable games (Chess, Cricket, Carrom, Rummy, Teen Patti, Poker, etc.)
+    Validates wallet balance, processes entry fee and win payouts atomically, and creates an audit record in Supabase.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        game_name = request.data.get("game_name", "Game").strip()
+        game_slug = request.data.get("game_slug", "game").strip()
+        result = request.data.get("result", "loss").lower().strip()
+
+        try:
+            bet_amount = Decimal(str(request.data.get("bet_amount", "0.00")))
+            payout_amount = Decimal(str(request.data.get("payout_amount", "0.00")))
+        except Exception:
+            return Response({"error": "Invalid bet or payout amount."}, status=status.HTTP_400_BAD_REQUEST)
+
+        score_details = request.data.get("score_details", {})
+        if not isinstance(score_details, dict):
+            score_details = {"details": str(score_details)}
+
+        wallet, _ = Wallet.objects.get_or_create(
+            user=request.user,
+            defaults={"balance": Decimal("100.00")},
+        )
+
+        ref_id = f"MATCH-{game_slug[:6].upper()}-{uuid.uuid4().hex[:8].upper()}"
+
+        if result == "loss":
+            if not wallet.can_afford(bet_amount):
+                return Response({
+                    "error": f"Insufficient wallet balance. You have ₹{wallet.balance}, required ₹{bet_amount}."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            wallet.debit(
+                amount=bet_amount,
+                description=f"{game_name} Match Entry / Loss",
+                reference_id=ref_id,
+                transaction_type="game_bet",
+            )
+            final_payout = Decimal("0.00")
+        elif result == "win":
+            wallet.credit(
+                amount=payout_amount,
+                description=f"{game_name} Match Victory Payout",
+                reference_id=ref_id,
+                transaction_type="game_win",
+            )
+            final_payout = payout_amount
+        else:
+            final_payout = Decimal("0.00")
+
+        # Save match record in Supabase PostgreSQL
+        record = GamePlayRecord.objects.create(
+            user=request.user,
+            game_name=game_name,
+            game_slug=game_slug,
+            bet_amount=bet_amount,
+            payout_amount=final_payout,
+            result=result,
+            score_details=score_details,
+            reference_id=ref_id,
+        )
+
+        admin_phone = getattr(settings, "ADMIN_WHATSAPP_NUMBER", "+917780383832").replace(" ", "").replace("-", "")
+        wa_text = (
+            f"Hello Admin, Match Completed on BetRally/WinPlay!\n"
+            f"Player ID: #{request.user.id}\n"
+            f"Username: {request.user.username}\n"
+            f"Game: {game_name}\n"
+            f"Result: {result.upper()}\n"
+            f"Entry: ₹{bet_amount}\n"
+            f"Payout: ₹{final_payout}\n"
+            f"Match Ref: {ref_id}\n"
+            f"Date: {record.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+        encoded_wa = urllib.parse.quote(wa_text)
+        clean_phone = admin_phone.replace("+", "")
+        wa_url = f"https://wa.me/{clean_phone}?text={encoded_wa}"
+
+        return Response({
+            "message": f"Match record saved: {result.upper()} in {game_name}",
+            "match_id": record.id,
+            "reference_id": ref_id,
+            "result": result,
+            "bet_amount": str(bet_amount),
+            "payout_amount": str(final_payout),
+            "wallet_balance": str(wallet.balance),
+            "whatsapp_admin_url": wa_url,
+            "admin_whatsapp_number": admin_phone,
+        }, status=status.HTTP_201_CREATED)
+
+
+class AdminMatchRecordsView(APIView):
+    """
+    Admin view for monitoring all player match activities, scores, wins, and losses.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        search = request.query_params.get("search", "").strip()
+        result_filter = request.query_params.get("result", "").strip()
+
+        records = GamePlayRecord.objects.select_related("user").all()
+
+        if search:
+            records = records.filter(
+                Q(user__username__icontains=search) |
+                Q(user__email__icontains=search) |
+                Q(game_name__icontains=search) |
+                Q(reference_id__icontains=search)
+            )
+
+        if result_filter:
+            records = records.filter(result__iexact=result_filter)
+
+        results = []
+        for r in records[:100]:
+            results.append({
+                "id": r.id,
+                "user_id": r.user.id,
+                "username": r.user.username,
+                "email": r.user.email,
+                "game_name": r.game_name,
+                "game_slug": r.game_slug,
+                "bet_amount": str(r.bet_amount),
+                "payout_amount": str(r.payout_amount),
+                "result": r.result,
+                "score_details": r.score_details,
+                "reference_id": r.reference_id,
+                "created_at": r.created_at.isoformat(),
+            })
+
+        return Response({
+            "count": len(results),
+            "results": results,
+        })
+

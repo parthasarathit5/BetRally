@@ -24,7 +24,7 @@ class WalletScreen extends StatefulWidget {
 class _WalletScreenState extends State<WalletScreen> {
   double balance = 0.0;
   String currency = 'INR';
-  String adminWhatsApp = '+919876543210';
+  String adminWhatsApp = '+917780383832';
   bool isLoading = true;
   List<dynamic> transactions = [];
   String? errorMessage;
@@ -64,10 +64,9 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   void showDepositDialog() {
-    final amountController = TextEditingController(text: '200');
+    final amountController = TextEditingController(text: '500');
     final amounts = [100, 200, 500, 1000, 2000, 5000];
     bool isSubmitting = false;
-    int selectedTab = 0; // 0 = WhatsApp Deposit, 1 = Instant Demo
 
     showModalBottomSheet(
       context: context,
@@ -94,9 +93,15 @@ class _WalletScreenState extends State<WalletScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Add Cash to Wallet',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        const Row(
+                          children: [
+                            Icon(Icons.lock_clock, color: gold, size: 22),
+                            SizedBox(width: 8),
+                            Text(
+                              'Add Cash to Wallet',
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                          ],
                         ),
                         IconButton(
                           icon: const Icon(Icons.close, color: Colors.white54),
@@ -104,128 +109,50 @@ class _WalletScreenState extends State<WalletScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
-                    // Payment Method Tabs
+                    // Admin WhatsApp Notice
                     Container(
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.black26,
-                        borderRadius: BorderRadius.circular(14),
+                        gradient: LinearGradient(
+                          colors: [
+                            green.withValues(alpha: 0.18),
+                            teal.withValues(alpha: 0.12),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: green.withValues(alpha: 0.35)),
                       ),
-                      padding: const EdgeInsets.all(4),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => setModalState(() => selectedTab = 0),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: selectedTab == 0 ? green : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.chat,
-                                      size: 16,
-                                      color: selectedTab == 0 ? Colors.black : Colors.white70,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Admin WhatsApp',
-                                      style: TextStyle(
-                                        color: selectedTab == 0 ? Colors.black : Colors.white70,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
+                          Row(
+                            children: [
+                              const CircleAvatar(
+                                backgroundColor: green,
+                                radius: 14,
+                                child: Icon(Icons.chat, size: 16, color: Colors.black),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Admin WhatsApp: $adminWhatsApp',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontSize: 14,
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => setModalState(() => selectedTab = 1),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: selectedTab == 1 ? teal : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.flash_on,
-                                      size: 16,
-                                      color: selectedTab == 1 ? Colors.black : Colors.white70,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Instant Demo',
-                                      style: TextStyle(
-                                        color: selectedTab == 1 ? Colors.black : Colors.white70,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'For maximum security, player wallet top-ups are verified and credited directly by the Administrator. Select your deposit amount below to send your request with your unique User ID.',
+                            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
                           ),
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 18),
-
-                    // Instruction note
-                    if (selectedTab == 0)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: green.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: green.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.verified_user, color: green, size: 22),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Submit request to open WhatsApp with Admin ($adminWhatsApp). Transfer via UPI/GPay and get credited immediately.',
-                                style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: teal.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: teal.withValues(alpha: 0.3)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.info_outline, color: teal, size: 22),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Instant Demo: Simulates successful payment and credits wallet immediately.',
-                                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
 
                     const SizedBox(height: 18),
                     const Text(
@@ -241,9 +168,9 @@ class _WalletScreenState extends State<WalletScreen> {
                         return ChoiceChip(
                           label: Text('₹$amt'),
                           selected: isSelected,
-                          selectedColor: (selectedTab == 0 ? green : teal).withValues(alpha: 0.3),
+                          selectedColor: green.withValues(alpha: 0.3),
                           labelStyle: TextStyle(
-                            color: isSelected ? (selectedTab == 0 ? green : teal) : Colors.white70,
+                            color: isSelected ? green : Colors.white70,
                             fontWeight: FontWeight.bold,
                           ),
                           onSelected: (_) {
@@ -258,11 +185,11 @@ class _WalletScreenState extends State<WalletScreen> {
                     TextField(
                       controller: amountController,
                       keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Custom Amount (₹)',
+                      decoration: const InputDecoration(
+                        labelText: 'Deposit Amount (₹)',
                         prefixIcon: Icon(
                           Icons.currency_rupee,
-                          color: selectedTab == 0 ? green : teal,
+                          color: green,
                         ),
                       ),
                     ),
@@ -272,18 +199,18 @@ class _WalletScreenState extends State<WalletScreen> {
                       height: 52,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: selectedTab == 0 ? green : teal,
+                          backgroundColor: green,
                           foregroundColor: Colors.black,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        icon: Icon(selectedTab == 0 ? Icons.chat : Icons.check_circle, color: Colors.black),
+                        icon: const Icon(Icons.chat, color: Colors.black),
                         label: isSubmitting
                             ? const CircularProgressIndicator(color: Colors.black)
-                            : Text(
-                                selectedTab == 0 ? 'PAY & AUTHENTICATE VIA WHATSAPP' : 'CONFIRM INSTANT DEPOSIT',
-                                style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                            : const Text(
+                                'PROCEED VIA WHATSAPP (+91 7780383832)',
+                                style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
                               ),
                         onPressed: isSubmitting
                             ? null
@@ -301,49 +228,27 @@ class _WalletScreenState extends State<WalletScreen> {
 
                                 setModalState(() => isSubmitting = true);
 
-                                if (selectedTab == 0) {
-                                  // WhatsApp Deposit Flow
-                                  try {
-                                    final res = await ApiService.requestWhatsAppDeposit(amount: amt);
-                                    modalNavigator.pop();
+                                try {
+                                  final res = await ApiService.requestWhatsAppDeposit(amount: amt);
+                                  modalNavigator.pop();
 
-                                    final waUrl = res['whatsapp_url']?.toString() ?? '';
-                                    final refId = res['reference_id']?.toString() ?? '';
+                                  final waUrl = res['whatsapp_url']?.toString() ?? '';
+                                  final refId = res['reference_id']?.toString() ?? '';
 
-                                    // Open confirmation dialog with direct button
-                                    if (mounted) {
-                                      showWhatsAppConfirmationDialog(
-                                        amount: amt,
-                                        refId: refId,
-                                        waUrl: waUrl,
-                                        adminPhone: res['admin_phone']?.toString() ?? adminWhatsApp,
-                                      );
-                                    }
-                                    loadWalletData();
-                                  } catch (err) {
-                                    setModalState(() => isSubmitting = false);
-                                    messenger.showSnackBar(
-                                      SnackBar(content: Text('Could not create deposit request: $err')),
+                                  if (mounted) {
+                                    showWhatsAppConfirmationDialog(
+                                      amount: amt,
+                                      refId: refId,
+                                      waUrl: waUrl,
+                                      adminPhone: res['admin_phone']?.toString() ?? adminWhatsApp,
                                     );
                                   }
-                                } else {
-                                  // Instant Demo Deposit Flow
-                                  try {
-                                    final res = await ApiService.deposit(amount: amt);
-                                    modalNavigator.pop();
-                                    messenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text(res['message']?.toString() ?? 'Deposit successful!'),
-                                        backgroundColor: teal,
-                                      ),
-                                    );
-                                    loadWalletData();
-                                  } catch (err) {
-                                    setModalState(() => isSubmitting = false);
-                                    messenger.showSnackBar(
-                                      SnackBar(content: Text('Deposit failed: $err')),
-                                    );
-                                  }
+                                  loadWalletData();
+                                } catch (err) {
+                                  setModalState(() => isSubmitting = false);
+                                  messenger.showSnackBar(
+                                    SnackBar(content: Text('Could not create deposit request: $err')),
+                                  );
                                 }
                               },
                       ),

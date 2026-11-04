@@ -36,7 +36,7 @@ class WalletDetailView(APIView):
         )
         serializer = WalletSerializer(wallet)
         data = serializer.data
-        data["admin_whatsapp"] = getattr(settings, "ADMIN_WHATSAPP_NUMBER", "+919876543210")
+        data["admin_whatsapp"] = getattr(settings, "ADMIN_WHATSAPP_NUMBER", "+917780383832")
         return Response(data)
 
 
@@ -96,7 +96,7 @@ class WhatsAppDepositRequestView(APIView):
         )
 
         ref_id = f"WA-DEP-{uuid.uuid4().hex[:8].upper()}"
-        admin_phone = getattr(settings, "ADMIN_WHATSAPP_NUMBER", "+919876543210").strip()
+        admin_phone = getattr(settings, "ADMIN_WHATSAPP_NUMBER", "+917780383832").strip()
         clean_phone = "".join(ch for ch in admin_phone if ch.isdigit())
 
         # Create a pending transaction record

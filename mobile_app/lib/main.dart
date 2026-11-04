@@ -8,6 +8,7 @@ import 'screens/games_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/admin_deposits_screen.dart';
 import 'screens/admin_games_screen.dart';
+import 'screens/admin_matches_screen.dart';
 
 void main() => runApp(const WinPlayApp());
 
@@ -1447,6 +1448,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 onTap: () => Navigator.push(context, MaterialPageRoute(
                   builder: (_) => const AdminGamesScreen(),
                 )).then((_) => loadDashboardStats()),
+              ),
+              _AdminFeatureTile(
+                icon: Icons.history_edu,
+                title: 'Player Match Activity & Records',
+                subtitle: 'Monitor live match results, wins, losses & scores in Supabase',
+                onTap: () => Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => const AdminMatchesScreen(),
+                )),
               ),
               _AdminFeatureTile(
                 icon: Icons.analytics_outlined,

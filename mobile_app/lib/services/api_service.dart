@@ -545,6 +545,61 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  // ---------------- MATCH RESULTS & GAME PLAY RECORDS ----------------
+
+  static Future<Map<String, dynamic>> recordMatch({
+    required String gameName,
+    required String gameSlug,
+    required String result,
+    required double betAmount,
+    required double payoutAmount,
+    Map<String, dynamic> scoreDetails = const {},
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+
+    final response = await http.post(
+      Uri.parse('$gamesUrl/record-match/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'game_name': gameName,
+        'game_slug': gameSlug,
+        'result': result,
+        'bet_amount': betAmount.toStringAsFixed(2),
+        'payout_amount': payoutAmount.toStringAsFixed(2),
+        'score_details': scoreDetails,
+      }),
+    );
+
+    return _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> getAdminMatches({
+    String search = '',
+    String result = '',
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+
+    final uri = Uri.parse('$gamesUrl/admin/matches/').replace(
+      queryParameters: {
+        if (search.isNotEmpty) 'search': search,
+        if (result.isNotEmpty) 'result': result,
+      },
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    return _handleResponse(response);
+  }
+
   // ---------------- RESPONSE HANDLER ----------------
 
   static Map<String, dynamic> _handleResponse(

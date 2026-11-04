@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import sys
 import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -84,7 +85,14 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database Configuration (Supabase PostgreSQL / SQLite Fallback)
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
-if DATABASE_URL and "[YOUR-PASSWORD]" not in DATABASE_URL:
+if "test" in sys.argv:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+    }
+elif DATABASE_URL and "[YOUR-PASSWORD]" not in DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
@@ -130,7 +138,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 
 # Admin WhatsApp Configuration (for manual payment verification & player inquiries)
-ADMIN_WHATSAPP_NUMBER = os.environ.get("ADMIN_WHATSAPP_NUMBER", "+919876543210").strip()
+ADMIN_WHATSAPP_NUMBER = os.environ.get("ADMIN_WHATSAPP_NUMBER", "+917780383832").strip()
 
 # Email Configuration
 EMAIL_HOST = os.environ.get("WINPLAY_EMAIL_HOST", "smtp.gmail.com")
