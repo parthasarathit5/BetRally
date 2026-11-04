@@ -18,3 +18,4 @@ services:
         sync: false
       - key: ADMIN_WHATSAPP_NUMBER
         value: "+919876543210"
+
