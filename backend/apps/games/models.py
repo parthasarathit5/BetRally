@@ -1,0 +1,76 @@
+from decimal import Decimal
+from django.conf import settings
+from django.db import models
+
+
+class Game(models.Model):
+    CATEGORY_CHOICES = [
+        ("sports", "Sports"),
+        ("board", "Board"),
+        ("casual", "Casual"),
+    ]
+
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, unique=True)
+    description = models.TextField(blank=True)
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        default="casual",
+    )
+    icon_name = models.CharField(
+        max_length=50,
+        default="sports_esports",
+    )
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class MinesGameSession(models.Model):
+    STATUS_CHOICES = [
+        ("in_progress", "In Progress"),
+        ("cashed_out", "Cashed Out"),
+        ("busted", "Busted"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="mines_sessions",
+    )
+    bet_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    mine_count = models.PositiveSmallIntegerField(default=3)
+    grid_size = models.PositiveSmallIntegerField(default=25)
+    mine_locations = models.JSONField(default=list)  # Hidden list of mine indices e.g. [2, 7, 18]
+    revealed_tiles = models.JSONField(default=list)  # Safe indices user clicked
+    current_multiplier = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal("1.00"),
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="in_progress",
+    )
+    payout = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Mines Session #{self.id} - {self.user.email} - Bet ₹{self.bet_amount} ({self.status})"

@@ -1,0 +1,186 @@
+================================================================================
+WINPLAY / BETRALLY - SYSTEM UPDATE & DEVELOPMENT NOTES
+================================================================================
+
+This document details all new features, architecture changes, files added,
+database configuration (Supabase PostgreSQL), and verification steps completed.
+
+--------------------------------------------------------------------------------
+1. SUMMARY OF NEW FEATURES & ARCHITECTURE
+--------------------------------------------------------------------------------
+
+A. SUPABASE POSTGRESQL DATABASE CONFIGURATION:
+   - Configured `dj-database-url` and `psycopg2` in `backend/config/settings.py`.
+   - Connected connection string:
+     `postgresql://postgres.zcslpyqbusbdsggrdtma:[YOUR-PASSWORD]@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres`
+   - SSL Enforcement: `ssl_require=True` and `conn_max_age=600` for Supabase connection pooling.
+   - Safe Fallback: If `[YOUR-PASSWORD]` is still present in `.env`, Django automatically
+     uses local SQLite so local development and checks never crash.
+   - To connect to Supabase:
+     1. Open `backend/.env`
+     2. Replace `[YOUR-PASSWORD]` with your actual Supabase database password.
+     3. Run: `python manage.py migrate` directly to Supabase!
+
+B. WHATSAPP DEPOSIT & ADMIN AUTHENTICATION FLOW:
+   - Player WhatsApp Deposit Request:
+     * Player selects/enters amount (e.g., ₹200, ₹500, ₹1000).
+     * Choosing "Admin WhatsApp" creates a pending deposit transaction with a unique Ref ID (e.g. WA-DEP-A1B2C3D4).
+     * Directly generates and launches an authorized WhatsApp message to Admin WhatsApp:
+       "Hello Admin, I want to add money to my BetRally / WinPlay wallet.
+        Player: <username>
+        Email: <email>
+        Amount: ₹<amount>
+        Deposit Ref: WA-DEP-A1B2C3D4
+        I have transferred the amount. Please verify and credit my wallet."
+     * Opens WhatsApp directly with Admin via `url_launcher`.
+   - Admin Dashboard Deposit Approval Screen:
+     * New interactive screen `AdminDepositsScreen` linked to "Deposit Requests & Approvals" on Admin Dashboard.
+     * Filter by: Pending Approval, Approved, Rejected, All Deposits.
+     * Admin can view player username, email, amount, and reference ID.
+     * 1-Click "APPROVE & CREDIT": Atomically credits the player's wallet and updates status to success.
+     * "REJECT" button with reason logging.
+   - Instant Demo Deposit option remains available for rapid testing.
+
+C. FORGOT PASSWORD & EMAIL DELIVERY SYSTEM:
+   - Real Email Sending: Configured Django SMTP mail delivery with HTML email templates.
+   - Branded Email Template: WinPlay dark/neon gradient styled HTML template with
+     a large, easy-to-read 6-digit OTP code box, expiration notices, and security guidelines.
+   - Environment Configuration (.env & .env.example):
+     Django now automatically loads backend/.env. Supports Gmail App Passwords and custom SMTP.
+   - Instant Local Testing Helper:
+     If SMTP credentials are not yet configured in .env, Django prints the OTP to the
+     runserver console AND returns "debug_otp" in the API response during DEBUG mode.
+     The Flutter app displays a convenient "Tap to autofill test OTP" chip so you can test
+     the entire reset flow without waiting or needing an external email connection!
+   - 60-Second Resend Timer: Added countdown timer on the OTP verification screen.
+   - Account Existence Feedback: Returns clear feedback if an entered email does not exist.
+
+D. VIRTUAL WALLET & TRANSACTION LEDGER:
+   - Backend Models:
+     * Wallet: Linked 1-to-1 with User. Tracks real-time balance (Decimal), currency (INR),
+       and lock status. Thread-safe atomic credit() and debit() methods.
+     * Transaction: Immutable audit log for every balance movement (deposit, withdrawal,
+       game_bet, game_win, bonus, refund) with balance_after and reference IDs.
+   - ₹100 Welcome Bonus: Automatically created whenever a new user signs up or through
+     the seed command for existing users.
+   - Wallet Endpoints (apps/virtual_wallet/):
+     * GET  /api/wallet/              -> Fetches current balance, currency, and admin WhatsApp.
+     * POST /api/wallet/deposit/      -> Add funds (supports UPI / Demo deposit).
+     * POST /api/wallet/deposit/whatsapp/ -> Generates pending WhatsApp deposit request & link.
+     * POST /api/wallet/withdraw/     -> Withdraw funds with balance validation & UPI ID.
+     * GET  /api/wallet/transactions/ -> Paginated list of recent transactions.
+     * GET  /api/wallet/admin/deposits/ -> Admin view of all deposit requests.
+     * POST /api/wallet/admin/deposits/<id>/approve/ -> Admin approve & credit wallet.
+     * POST /api/wallet/admin/deposits/<id>/reject/  -> Admin reject deposit.
+   - Flutter Wallet Screen:
+     * High-roller neon purple/gold gradient balance card.
+     * Interactive Add Cash modal with WhatsApp Deposit & Instant Demo tabs.
+     * Interactive Withdraw modal with balance verification and UPI input.
+     * Real-time Transaction History list with color-coded badges (+ for wins/deposits, - for bets/withdrawals).
+
+E. INTERACTIVE MINES ARCADE GAME:
+   - Backend Game Engine (apps/games/):
+     * MinesGameSession model: Tracks active game, bet amount, mine count (1-24),
+       hidden mine locations (0-24 grid), revealed safe tiles, multiplier, payout, status.
+     * Provably Fair Multiplier: Implemented mathematical formula in mines_logic.py:
+       M = (1 - house_edge) * Product((25 - i) / (safe_total - i))
+     * Endpoints:
+       - POST /api/games/mines/start/   -> Debits bet from wallet, generates mine layout.
+       - POST /api/games/mines/reveal/  -> Reveals tile (Diamond or Bomb), updates multiplier.
+       - POST /api/games/mines/cashout/ -> Credits winnings to wallet instantly.
+       - GET  /api/games/mines/active/  -> Resumes active game if user reloads.
+   - Flutter Mines Screen:
+     * Dark cyber arcade 5x5 grid (25 tiles) with smooth flip animations.
+     * Customizable Bet Amount (₹10, ₹20, ₹50, ₹100, ₹500, or custom).
+     * Customizable Mine Count (1, 3, 5, 10, 20 mines).
+     * Live Multiplier & Next Tile Multiplier indicator.
+     * Glowing Cashout button showing real-time payout (e.g., CASHOUT ₹45.60 (2.28x)).
+     * Victory & Busted popup dialogs with instant wallet balance synchronization.
+     * Offline simulation fallback mode if backend server is unreachable.
+
+F. EXPLORE GAMES & NAVIGATION INTEGRATION:
+   - Seeded Game Catalog: Mines, Cricket Clash, Speed Football, Blitz Chess, Carrom King.
+   - Games Screen: Category filters (All, Casual, Sports, Board), search bar, and "PLAY NOW"
+     button on Mines.
+   - Profile Screen: Displays player username, email, VIP tier, live wallet balance, and Sign Out.
+   - Main BottomNavigationBar: 4 fully working tabs:
+     1. Home (Hero banner with "Play Mines" shortcut, featured games, wallet card)
+     2. Games (Full games catalog and search)
+     3. Wallet (Balance, Add Cash via WhatsApp or Demo, Withdraw, Transaction ledger)
+     4. Profile (Account stats, settings, logout)
+   - Live Wallet Pill in AppBar: Displays current balance across screens. Tapping it jumps
+     directly to the Wallet tab.
+
+G. CODE QUALITY & LINT CLEANUP:
+   - Ran `flutter analyze`: 0 errors, 0 warnings, 0 lints!
+   - Fixed all async context gaps in registration and wallet dialogs.
+   - Fixed deprecated Switch activeColor to activeThumbColor.
+   - Verified `python manage.py check`: 0 issues found.
+
+--------------------------------------------------------------------------------
+2. FILES ADDED & MODIFIED
+--------------------------------------------------------------------------------
+
+BACKEND FILES:
+- backend/config/settings.py: Added Supabase dj_database_url config, ADMIN_WHATSAPP_NUMBER, .env loader, full SMTP settings.
+- backend/config/urls.py: Added /api/wallet/ route.
+- backend/.env.example: Environment variable template for Supabase, WhatsApp, Gmail SMTP.
+- backend/.env: Local environment configuration.
+- backend/apps/virtual_wallet/views.py: Added WhatsApp deposit request and Admin approval APIs.
+- backend/apps/virtual_wallet/urls.py: Added WhatsApp and Admin deposit routes.
+- backend/apps/virtual_wallet/models.py: Implemented Wallet model with atomic credit/debit.
+- backend/apps/virtual_wallet/serializers.py: Serializers for wallet, deposit, withdraw.
+- backend/apps/virtual_wallet/admin.py: Registered Wallet in Django Admin.
+- backend/apps/virtual_wallet/signals.py: Auto-creates ₹100 wallet for new signups.
+- backend/apps/transactions/models.py: Implemented Transaction audit log model.
+- backend/apps/transactions/admin.py: Registered Transaction in Django Admin.
+- backend/apps/games/models.py: Added MinesGameSession model.
+- backend/apps/games/mines_logic.py: Provably fair multiplier calculation logic.
+- backend/apps/games/views.py: Mines game start, reveal, cashout, active session APIs.
+- backend/apps/games/urls.py: URL routing for Mines game endpoints.
+- backend/apps/games/admin.py: Registered MinesGameSession in Django Admin.
+- backend/apps/games/management/commands/seed_games.py: Seeds 5 default games & initializes wallets.
+
+MOBILE APP (FLUTTER) FILES:
+- mobile_app/pubspec.yaml: Added `url_launcher: ^6.3.3` for WhatsApp launching.
+- mobile_app/lib/services/api_service.dart: Added WhatsApp deposit & Admin deposit approval APIs.
+- mobile_app/lib/screens/wallet_screen.dart: Added WhatsApp deposit flow with prefilled message, confirmation dialog & Ref ID.
+- mobile_app/lib/screens/admin_deposits_screen.dart: Complete Admin Deposit Requests & Approvals management screen.
+- mobile_app/lib/screens/mines_game_screen.dart: Playable 5x5 Mines Arcade game screen.
+- mobile_app/lib/screens/games_screen.dart: Games catalog with search & category filters.
+- mobile_app/lib/screens/profile_screen.dart: Player profile, stats, logout.
+- mobile_app/lib/main.dart: Connected 4 tabs, Admin Dashboard feature tiles, live wallet pill.
+
+--------------------------------------------------------------------------------
+3. HOW TO CONFIGURE SUPABASE POSTGRESQL
+--------------------------------------------------------------------------------
+
+1. Open `backend/.env`
+2. Replace `[YOUR-PASSWORD]` in `DATABASE_URL` with your actual Supabase database password:
+   DATABASE_URL=postgresql://postgres.zcslpyqbusbdsggrdtma:YourActualPasswordHere@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres
+3. In terminal, run migrations directly to Supabase:
+   cd backend
+   python manage.py migrate
+   python manage.py seed_games
+   python manage.py createsuperuser
+
+All player accounts, wallets, transactions, games, and admin data will now reside directly in your Supabase database!
+
+--------------------------------------------------------------------------------
+4. HOW TO PUSH TO GITHUB (https://github.com/parthasarathit5/BetRally)
+--------------------------------------------------------------------------------
+
+Run the following commands in the project root:
+1. Stage all files:
+   git add .
+2. Create commit:
+   git commit -m "Initial commit: WinPlay/BetRally full stack platform with Mines, Wallet, WhatsApp Deposit, and Supabase config"
+3. Set remote origin:
+   git remote add origin https://github.com/parthasarathit5/BetRally.git
+4. Rename branch to main:
+   git branch -M main
+5. Push to GitHub:
+   git push -u origin main
+
+(Note: Sensitive secrets like backend/.env and local sqlite databases are strictly ignored by .gitignore to keep your repo secure).
+================================================================================

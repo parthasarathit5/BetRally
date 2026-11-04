@@ -1,0 +1,9 @@
+WinPlay User Management update
+
+- Admin-only GET /api/accounts/admin/users/?search=&page=1
+- Admin-only PATCH /api/accounts/admin/users/<id>/status/ with {"is_active": true|false}
+- Flutter Admin Dashboard User management tile opens a searchable, paginated player list.
+- Player activation/deactivation is restricted to staff JWTs and excludes staff/superusers.
+
+Run from backend: python manage.py check
+Run Flutter: flutter pub get && flutter analyze
