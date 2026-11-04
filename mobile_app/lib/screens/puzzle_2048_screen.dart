@@ -638,3 +638,4 @@ class _SlideResult {
   final int scoreGain;
   _SlideResult({required this.row, required this.moved, required this.scoreGain});
 }
+

@@ -738,3 +738,4 @@ class _SpacePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SpacePainter oldDelegate) => true;
 }
+

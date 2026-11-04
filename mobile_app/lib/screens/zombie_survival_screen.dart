@@ -700,3 +700,4 @@ class _ZombieArenaPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ZombieArenaPainter oldDelegate) => true;
 }
+

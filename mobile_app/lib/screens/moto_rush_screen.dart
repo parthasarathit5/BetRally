@@ -664,3 +664,4 @@ class _HighwayPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _HighwayPainter oldDelegate) => true;
 }
+
