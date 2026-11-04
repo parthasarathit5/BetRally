@@ -304,5 +304,6 @@ class AdminWalletCreditDebitView(APIView):
         return Response({
             "message": f"Wallet {action}ed ₹{amount:.2f}",
             "balance": str(wallet.balance),
+            "new_balance": str(wallet.balance),
             "reference_id": ref_id,
         })

@@ -183,4 +183,51 @@ Run the following commands in the project root:
    git push -u origin main
 
 (Note: Sensitive secrets like backend/.env and local sqlite databases are strictly ignored by .gitignore to keep your repo secure).
+
+--------------------------------------------------------------------------------
+5. NEW UPDATES: ADMIN GAME MANAGEMENT, PLAYER INSPECTION & RENDER CONFIG
+--------------------------------------------------------------------------------
+
+A. ADMIN GAME MANAGEMENT SCREEN (mobile_app/lib/screens/admin_games_screen.dart):
+   - Full CRUD UI for Games in Flutter:
+     * View all catalogued games with Category tags (Casual, Sports, Board) and status badges.
+     * Instant Active / Inactive switch for any game.
+     * "Add New Game" dialog with icon picker (Casino, Sports, Bolt, Videogame, Shield, etc.).
+     * "Edit Game" modal for modifying title, category, description, and sort order.
+     * "Delete Game" with confirmation dialog.
+     * Instant search bar and category filter tabs.
+   - Connected directly to Admin Dashboard "Game management" tile.
+
+B. PLAYER INSPECTION & WALLET CREDIT / DEBIT ADJUSTMENTS:
+   - Admin can view all registered players with live wallet balance pill directly on each card.
+   - Tapping any player opens an interactive Player Inspection Bottom Sheet:
+     * Full profile info: ID, Username, Email, Phone Number, Date Joined, Account Status.
+     * Large Neon Wallet Balance display with available funds.
+     * "CREDIT WALLET" button: Admin enters amount and reason -> instantly credits player's wallet.
+     * "DEBIT WALLET" button: Admin enters amount and reason -> debits player's wallet with balance checks.
+     * Real-time balance update in the list.
+
+C. ADMIN DASHBOARD LIVE METRICS (GET /api/accounts/admin/stats/):
+   - Admin Dashboard automatically fetches and displays 4 real-time platform cards:
+     * Total Players
+     * Active Games
+     * Total Wallet Pool (₹)
+     * Pending WhatsApp Deposits (highlighted with Gold badge)
+   - "Platform Summary" dialog displaying approved deposits and Mines arcade sessions.
+
+D. PRODUCTION READY CONFIGURATION FOR RENDER DEPLOYMENT:
+   - Added `backend/requirements.txt` with locked production dependencies:
+     * Django 5.x, DRF, simplejwt, corsheaders, psycopg2-binary, dj-database-url, gunicorn, whitenoise.
+   - Added `backend/Procfile` for Gunicorn web process.
+   - Added `backend/build.sh` for auto-running pip install, collectstatic, and migrate.
+   - Added `render.yaml` infrastructure-as-code Blueprint specification.
+   - Configured WhiteNoise middleware & STATIC_ROOT in `backend/config/settings.py` for lightning-fast static file serving.
+
+E. COMPREHENSIVE AUTOMATED TEST SUITE (12 / 12 PASSING):
+   - `apps/accounts/tests.py`: Registration, Login, Admin Login permissions, 6-digit OTP password reset flow, and admin stats authorization.
+   - `apps/virtual_wallet/tests.py`: Welcome bonus verification, wallet inspection, WhatsApp deposit creation & admin approval/rejection, and admin credit/debit adjustments.
+   - `apps/games/tests.py`: Public catalog, Admin CRUD operations, Mines game session start, safe tile reveal, provably fair multiplier validation, and cashout.
+   - All tests passing with `Ran 12 tests in ... OK`.
+   - `flutter analyze` completed with 0 errors!
+
 ================================================================================

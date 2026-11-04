@@ -7,6 +7,7 @@ import 'screens/mines_game_screen.dart';
 import 'screens/games_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/admin_deposits_screen.dart';
+import 'screens/admin_games_screen.dart';
 
 void main() => runApp(const WinPlayApp());
 
@@ -1321,8 +1322,44 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   }
 }
 
-class AdminDashboardScreen extends StatelessWidget {
+class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
+
+  @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  Map<String, dynamic>? stats;
+  bool loadingStats = true;
+  String? statsError;
+
+  @override
+  void initState() {
+    super.initState();
+    loadDashboardStats();
+  }
+
+  Future<void> loadDashboardStats() async {
+    setState(() {
+      loadingStats = true;
+      statsError = null;
+    });
+    try {
+      final res = await ApiService.getAdminStats();
+      if (!mounted) return;
+      setState(() {
+        stats = res;
+        loadingStats = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        statsError = e.toString();
+        loadingStats = false;
+      });
+    }
+  }
 
   Future<void> logout(BuildContext context) async {
     await TokenStorage.clearTokens();
@@ -1340,6 +1377,11 @@ class AdminDashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('WINPLAY ADMIN'),
         actions: [
+          IconButton(
+            tooltip: 'Refresh Stats',
+            onPressed: loadDashboardStats,
+            icon: const Icon(Icons.refresh),
+          ),
           IconButton(
             tooltip: 'Logout',
             onPressed: () => logout(context),
@@ -1377,41 +1419,40 @@ class AdminDashboardScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
+              _buildStatsGrid(),
+              const SizedBox(height: 20),
               _AdminFeatureTile(
                 icon: Icons.people_alt_outlined,
                 title: 'User management',
-                subtitle: 'View, search and manage registered players',
+                subtitle: 'View, search, inspect balances & adjust credits',
                 onTap: () => Navigator.push(context, MaterialPageRoute(
                   builder: (_) => const AdminUsersScreen(),
-                )),
+                )).then((_) => loadDashboardStats()),
               ),
               _AdminFeatureTile(
                 icon: Icons.price_check,
                 title: 'Deposit Requests & Approvals',
                 subtitle: 'Verify WhatsApp deposits & credit player wallets',
+                badgeText: (stats != null && (stats!['pending_deposits'] as int? ?? 0) > 0)
+                    ? '${stats!['pending_deposits']} PENDING'
+                    : null,
                 onTap: () => Navigator.push(context, MaterialPageRoute(
                   builder: (_) => const AdminDepositsScreen(),
-                )),
+                )).then((_) => loadDashboardStats()),
               ),
               _AdminFeatureTile(
                 icon: Icons.sports_esports_outlined,
                 title: 'Game management',
-                subtitle: 'Review active catalogue: Mines, Cricket, Football, Chess',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('5 seeded games are active. Manage via Django /admin/games/')),
-                  );
-                },
+                subtitle: 'Create, edit, toggle active status & delete games',
+                onTap: () => Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => const AdminGamesScreen(),
+                )).then((_) => loadDashboardStats()),
               ),
               _AdminFeatureTile(
                 icon: Icons.analytics_outlined,
-                title: 'Reports & Audit',
-                subtitle: 'Platform activity and financial audit logs',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Detailed audit logs available in Django Admin.')),
-                  );
-                },
+                title: 'Reports & Platform Audit',
+                subtitle: 'Platform statistics, wallet balances & session logs',
+                onTap: () => _showAuditDialog(context),
               ),
               const SizedBox(height: 12),
               const Text(
@@ -1425,18 +1466,207 @@ class AdminDashboardScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildStatsGrid() {
+    if (loadingStats) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: teal),
+              ),
+              SizedBox(width: 14),
+              Text('Fetching platform statistics...', style: TextStyle(color: Colors.white70)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (statsError != null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline, color: gold),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Live stats offline (Local demo mode). Click refresh to reconnect.',
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final totalPlayers = stats?['total_players']?.toString() ?? '0';
+    final activeGames = stats?['active_games']?.toString() ?? '0';
+    final pool = stats?['total_wallet_pool']?.toString() ?? '0.00';
+    final pendingDep = stats?['pending_deposits']?.toString() ?? '0';
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 2.1,
+      children: [
+        _buildStatCard(
+          icon: Icons.people,
+          label: 'Total Players',
+          value: totalPlayers,
+          color: teal,
+        ),
+        _buildStatCard(
+          icon: Icons.sports_esports,
+          label: 'Active Games',
+          value: activeGames,
+          color: purple,
+        ),
+        _buildStatCard(
+          icon: Icons.account_balance_wallet,
+          label: 'Wallet Pool',
+          value: '₹$pool',
+          color: blue,
+        ),
+        _buildStatCard(
+          icon: Icons.pending_actions,
+          label: 'Pending Deposits',
+          value: pendingDep,
+          color: pendingDep != '0' ? gold : Colors.white60,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: color.withValues(alpha: 0.16),
+            radius: 20,
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAuditDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surface,
+        title: const Row(
+          children: [
+            Icon(Icons.analytics, color: teal),
+            SizedBox(width: 10),
+            Text('Platform Summary'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _auditRow('Total Registered Players:', '${stats?['total_players'] ?? 'N/A'}'),
+            _auditRow('Active Players:', '${stats?['active_players'] ?? 'N/A'}'),
+            _auditRow('Total Games Catalogued:', '${stats?['total_games'] ?? 'N/A'}'),
+            _auditRow('Active Games:', '${stats?['active_games'] ?? 'N/A'}'),
+            _auditRow('Total Wallet Balances:', '₹${stats?['total_wallet_pool'] ?? '0.00'}'),
+            _auditRow('Approved Deposits:', '₹${stats?['total_deposits_approved'] ?? '0.00'}'),
+            _auditRow('Mines Arcade Sessions:', '${stats?['total_mines_sessions'] ?? '0'}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CLOSE'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _auditRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: teal, fontSize: 13)),
+        ],
+      ),
+    );
+  }
 }
 
 class _AdminFeatureTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final String? badgeText;
   final VoidCallback? onTap;
 
   const _AdminFeatureTile({
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.badgeText,
     this.onTap,
   });
 
@@ -1450,7 +1680,26 @@ class _AdminFeatureTile extends StatelessWidget {
           backgroundColor: teal.withValues(alpha: 0.15),
           child: Icon(icon, color: teal),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            if (badgeText != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: gold.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: gold, width: 0.8),
+                ),
+                child: Text(
+                  badgeText!,
+                  style: const TextStyle(color: gold, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+          ],
+        ),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
@@ -1606,6 +1855,326 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
+  Future<void> showPlayerInspection(Map<String, dynamic> user) async {
+    final username = user['username']?.toString() ?? 'Player';
+    final email = user['email']?.toString() ?? '-';
+    final phone = user['phone_number']?.toString() ?? 'Not provided';
+    final dateJoined = user['date_joined']?.toString().split('T').first ?? '-';
+    String currentBalance = user['wallet_balance']?.toString() ?? '0.00';
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 22,
+                              backgroundColor: teal.withValues(alpha: 0.18),
+                              child: Text(
+                                username.isNotEmpty ? username[0].toUpperCase() : 'P',
+                                style: const TextStyle(
+                                  color: teal,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  username,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  email,
+                                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const Divider(color: Colors.white12, height: 28),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            teal.withValues(alpha: 0.15),
+                            blue.withValues(alpha: 0.12),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: teal.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'WALLET BALANCE',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white60,
+                                  letterSpacing: 1.2,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text('Available Funds', style: TextStyle(fontSize: 12, color: Colors.white38)),
+                            ],
+                          ),
+                          Text(
+                            '₹$currentBalance',
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              color: teal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _infoRow(Icons.phone_outlined, 'Phone', phone),
+                    _infoRow(Icons.calendar_today_outlined, 'Registered', dateJoined),
+                    _infoRow(
+                      Icons.shield_outlined,
+                      'Account Status',
+                      user['is_active'] == true ? 'Active' : 'Deactivated / Banned',
+                      color: user['is_active'] == true ? teal : pink,
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: teal,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.add_circle_outline),
+                            label: const Text('CREDIT WALLET', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              showAdjustmentDialog(user, 'credit');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: pink,
+                              side: const BorderSide(color: pink),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.remove_circle_outline),
+                            label: const Text('DEBIT WALLET', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              showAdjustmentDialog(user, 'debit');
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.white38),
+          const SizedBox(width: 10),
+          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+          const Spacer(),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: color ?? Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> showAdjustmentDialog(Map<String, dynamic> user, String action) async {
+    final amountCtrl = TextEditingController();
+    final reasonCtrl = TextEditingController(text: action == 'credit' ? 'Admin reward / adjustment' : 'Admin penalty / adjustment');
+    bool adjusting = false;
+    final isCredit = action == 'credit';
+
+    await showDialog(
+      context: context,
+      builder: (dlgCtx) {
+        return StatefulBuilder(
+          builder: (context, setDlgState) {
+            return AlertDialog(
+              backgroundColor: surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: [
+                  Icon(
+                    isCredit ? Icons.add_circle : Icons.remove_circle,
+                    color: isCredit ? teal : pink,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(isCredit ? 'Credit Player Wallet' : 'Debit Player Wallet'),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Player: ${user['username']}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Current Balance: ₹${user['wallet_balance'] ?? '0.00'}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: amountCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Adjustment Amount (₹)',
+                        hintText: 'e.g. 100.00',
+                        prefixIcon: Icon(Icons.currency_rupee),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: reasonCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Reason / Description',
+                        hintText: 'e.g. Tournament reward, dispute resolution',
+                        prefixIcon: Icon(Icons.edit_note),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: adjusting ? null : () => Navigator.pop(dlgCtx),
+                  child: const Text('CANCEL'),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: isCredit ? teal : pink,
+                    foregroundColor: isCredit ? Colors.black : Colors.white,
+                  ),
+                  onPressed: adjusting
+                      ? null
+                      : () async {
+                          final double? amt = double.tryParse(amountCtrl.text.trim());
+                          if (amt == null || amt <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please enter a valid positive amount.')),
+                            );
+                            return;
+                          }
+                          setDlgState(() => adjusting = true);
+                          final messenger = ScaffoldMessenger.of(context);
+                          final nav = Navigator.of(dlgCtx);
+                          try {
+                            final res = await ApiService.adminAdjustWallet(
+                              userId: user['id'] as int,
+                              action: action,
+                              amount: amt,
+                              description: reasonCtrl.text.trim(),
+                            );
+                            if (!mounted) return;
+                            setState(() {
+                              user['wallet_balance'] = res['new_balance']?.toString() ??
+                                  (isCredit
+                                      ? (double.parse(user['wallet_balance'] ?? '0') + amt).toStringAsFixed(2)
+                                      : (double.parse(user['wallet_balance'] ?? '0') - amt).toStringAsFixed(2));
+                            });
+                            nav.pop();
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Successfully ${isCredit ? 'credited' : 'debited'} ₹${amt.toStringAsFixed(2)} to ${user['username']}.',
+                                ),
+                              ),
+                            );
+                          } catch (e) {
+                            setDlgState(() => adjusting = false);
+                            messenger.showSnackBar(
+                              SnackBar(content: Text('Adjustment failed: $e')),
+                            );
+                          }
+                        },
+                  child: Text(adjusting ? 'PROCESSING...' : (isCredit ? 'CREDIT' : 'DEBIT')),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildBody() {
     if (loading) return const Center(child: CircularProgressIndicator());
     if (error != null) {
@@ -1629,24 +2198,68 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       itemBuilder: (context, index) {
         final user = Map<String, dynamic>.from(users[index] as Map);
         final active = user['is_active'] == true;
+        final bal = user['wallet_balance']?.toString() ?? '0.00';
         return Card(
           color: surface,
           margin: const EdgeInsets.only(bottom: 10),
           child: ListTile(
+            onTap: () => showPlayerInspection(user),
             leading: CircleAvatar(
               backgroundColor: teal.withValues(alpha: .15),
-              child: Text((user['username'] as String? ?? 'P').isNotEmpty
-                ? (user['username'] as String)[0].toUpperCase() : 'P',
-                style: const TextStyle(color: teal)),
+              child: Text(
+                (user['username'] as String? ?? 'P').isNotEmpty
+                    ? (user['username'] as String)[0].toUpperCase()
+                    : 'P',
+                style: const TextStyle(color: teal, fontWeight: FontWeight.bold),
+              ),
             ),
-            title: Text(user['username']?.toString() ?? 'Unknown'),
-            subtitle: Text('${user['email'] ?? ''}\n${active ? 'Active' : 'Inactive'}',
-              maxLines: 2, overflow: TextOverflow.ellipsis),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    user['username']?.toString() ?? 'Unknown',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: teal.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: teal.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    '₹$bal',
+                    style: const TextStyle(
+                      color: teal,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: Text(
+              '${user['email'] ?? ''}\nTap to inspect profile & adjust wallet',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12),
+            ),
             isThreeLine: true,
-            trailing: Switch(
-              value: active,
-              activeThumbColor: teal,
-              onChanged: (_) => toggleStatus(user),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Adjust Wallet',
+                  icon: const Icon(Icons.account_balance_wallet_outlined, color: teal),
+                  onPressed: () => showPlayerInspection(user),
+                ),
+                Switch(
+                  value: active,
+                  activeThumbColor: teal,
+                  onChanged: (_) => toggleStatus(user),
+                ),
+              ],
             ),
           ),
         );

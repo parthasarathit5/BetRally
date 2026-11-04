@@ -157,6 +157,22 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  // ---------------- ADMIN: DASHBOARD STATS ----------------
+
+  static Future<Map<String, dynamic>> getAdminStats() async {
+    final token = await TokenStorage.getAccessToken();
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/stats/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    return _handleResponse(response);
+  }
+
   // ---------------- PUBLIC: GAMES ----------------
 
   static Future<List<dynamic>> getGames() async {
@@ -423,6 +439,30 @@ class ApiService {
         'Content-Type': 'application/json',
       },
       body: jsonEncode({'reason': reason}),
+    );
+
+    return _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> adminAdjustWallet({
+    required int userId,
+    required String action,
+    required double amount,
+    String description = '',
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+
+    final response = await http.post(
+      Uri.parse('$walletUrl/admin/$userId/adjust/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'action': action,
+        'amount': amount.toStringAsFixed(2),
+        'description': description,
+      }),
     );
 
     return _handleResponse(response);

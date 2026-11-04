@@ -1,12 +1,13 @@
 import secrets
 from datetime import timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
@@ -45,7 +46,6 @@ def request_password_reset(request):
 
     user = User.objects.filter(email__iexact=email).first()
 
-    # If the user doesn't exist, return clear info so users aren't left waiting for an email
     if not user:
         return Response({
             "message": "If this email is registered, password reset instructions have been sent.",
@@ -54,7 +54,6 @@ def request_password_reset(request):
 
     now = timezone.now()
 
-    # Rate limiting: allow up to 10 requests per hour
     recent_requests = PasswordResetOTP.objects.filter(
         user=user,
         created_at__gte=now - timedelta(hours=1),
@@ -66,7 +65,6 @@ def request_password_reset(request):
             status=status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
-    # Invalidate older OTPs
     PasswordResetOTP.objects.filter(
         user=user,
         is_used=False,
@@ -80,7 +78,6 @@ def request_password_reset(request):
         expires_at=now + timedelta(minutes=5),
     )
 
-    # Rich HTML email template with WinPlay theme
     html_content = f"""
     <!DOCTYPE html>
     <html>
@@ -99,9 +96,9 @@ def request_password_reset(request):
     </head>
     <body>
       <div class="card">
-        <div class="logo">WINPLAY</div>
+        <div class="logo">WINPLAY / BETRALLY</div>
         <div class="badge">Password Reset Verification</div>
-        <div class="title">Your WinPlay OTP Code</div>
+        <div class="title">Your Verification OTP Code</div>
         <div class="desc">
           Hello <strong>{user.username}</strong>,<br>
           We received a request to reset your password. Use the verification code below:
@@ -112,7 +109,7 @@ def request_password_reset(request):
           If you didn't request a password reset, you can safely ignore this email.
         </div>
         <div class="footer">
-          &copy; WinPlay Gaming Platform. Play Fair &bull; Have Fun.
+          &copy; BetRally &bull; WinPlay Gaming. Play Fair &bull; Have Fun.
         </div>
       </div>
     </body>
@@ -121,7 +118,7 @@ def request_password_reset(request):
 
     plain_message = (
         f"Hello {user.username},\n\n"
-        f"Your WinPlay password reset code is: {otp}\n\n"
+        f"Your WinPlay / BetRally password reset code is: {otp}\n\n"
         "It expires in 5 minutes. Do not share this code with anyone.\n\n"
         "If you did not request this code, you can safely ignore this email."
     )
@@ -153,7 +150,6 @@ def request_password_reset(request):
         "account_found": True,
     }
 
-    # If backend is using console email backend during local testing, include debug_otp
     if settings.DEBUG and "console" in getattr(settings, "EMAIL_BACKEND", "").lower():
         res_data["debug_otp"] = otp
         res_data["note"] = "Local console email mode: OTP printed in terminal."
@@ -266,7 +262,6 @@ def confirm_password_reset(request):
     user.set_password(new_password)
     user.save(update_fields=["password"])
 
-    # Make the reset token unusable after a successful password change.
     record.reset_token_hash = ""
     record.reset_token_expires_at = None
     record.save(update_fields=[
@@ -299,7 +294,7 @@ class AdminUserListView(APIView):
 
     def get(self, request):
         search = request.query_params.get("search", "").strip()
-        users = User.objects.filter(is_staff=False, is_superuser=False).order_by("-date_joined")
+        users = User.objects.filter(is_staff=False, is_superuser=False).select_related("wallet").order_by("-date_joined")
         if search:
             users = users.filter(
                 Q(username__icontains=search) |
@@ -308,14 +303,20 @@ class AdminUserListView(APIView):
             )
         paginator = AdminUserPagination()
         page = paginator.paginate_queryset(users, request, view=self)
-        results = [{
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "phone_number": user.phone_number,
-            "is_active": user.is_active,
-            "date_joined": user.date_joined.isoformat(),
-        } for user in page]
+        results = []
+        for user in page:
+            bal = "0.00"
+            if hasattr(user, "wallet"):
+                bal = str(user.wallet.balance)
+            results.append({
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "phone_number": user.phone_number,
+                "is_active": user.is_active,
+                "wallet_balance": bal,
+                "date_joined": user.date_joined.isoformat(),
+            })
         return paginator.get_paginated_response(results)
 
 
@@ -333,3 +334,37 @@ class AdminUserStatusView(APIView):
         user.is_active = is_active
         user.save(update_fields=["is_active"])
         return Response({"id": user.id, "is_active": user.is_active, "message": "Player status updated."})
+
+
+class AdminDashboardStatsView(APIView):
+    """
+    Overview statistics for the Admin Dashboard.
+    Provides total player count, active players, game count, wallet balances, and deposit requests.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from apps.games.models import Game, MinesGameSession
+        from apps.virtual_wallet.models import Wallet
+        from apps.transactions.models import Transaction
+
+        total_players = User.objects.filter(is_staff=False, is_superuser=False).count()
+        active_players = User.objects.filter(is_staff=False, is_superuser=False, is_active=True).count()
+        total_games = Game.objects.count()
+        active_games = Game.objects.filter(is_active=True).count()
+
+        total_wallet_pool = Wallet.objects.aggregate(total=Sum("balance"))["total"] or Decimal("0.00")
+        pending_deposits = Transaction.objects.filter(transaction_type="deposit", status="pending").count()
+        total_deposits_approved = Transaction.objects.filter(transaction_type="deposit", status="success").aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+        total_mines_sessions = MinesGameSession.objects.count()
+
+        return Response({
+            "total_players": total_players,
+            "active_players": active_players,
+            "total_games": total_games,
+            "active_games": active_games,
+            "total_wallet_pool": str(total_wallet_pool),
+            "pending_deposits": pending_deposits,
+            "total_deposits_approved": str(total_deposits_approved),
+            "total_mines_sessions": total_mines_sessions,
+        })
