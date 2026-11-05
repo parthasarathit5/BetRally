@@ -9,7 +9,7 @@ class ApiService {
   static String get backendRoot {
     if (customBackendUrl.isNotEmpty) return customBackendUrl;
     if (kReleaseMode) {
-      return 'https://betrally-backend.onrender.com';
+      return 'https://betrally.onrender.com';
     }
     return 'http://127.0.0.1:8000';
   }
