@@ -23,6 +23,7 @@ media/
 # Flutter
 .dart_tool/
 build/
+*.apk
 .flutter-plugins
 .flutter-plugins-dependencies
 ephemeral/
