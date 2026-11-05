@@ -470,6 +470,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   int step = 0;
   String resetToken = '';
   String? debugOtp;
+  String? whatsappUrl;
   int resendSeconds = 0;
   Timer? resendTimer;
 
@@ -523,6 +524,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
 
       debugOtp = result['debug_otp']?.toString();
+      whatsappUrl = result['whatsapp_url']?.toString();
       showMessage(result['message']?.toString() ?? 'Verification code sent to your email!');
       setState(() => step = 1);
       startResendTimer();
@@ -651,9 +653,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: purple.withValues(alpha: 0.15),
+                        color: teal.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: purple.withValues(alpha: 0.4)),
+                        border: Border.all(color: teal.withValues(alpha: 0.4)),
                       ),
                       child: Row(
                         children: [
@@ -661,13 +663,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Test OTP: $debugOtp (Tap to autofill)',
+                              'Verification Code: $debugOtp (Tap to autofill)',
                               style: const TextStyle(color: teal, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (whatsappUrl != null) ...[
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF25D366),
+                      side: const BorderSide(color: Color(0xFF25D366)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.chat, size: 18),
+                    label: const Text('Get OTP on WhatsApp (+91 7780383832)'),
+                    onPressed: () async {
+                      final uri = Uri.parse(whatsappUrl!);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
                 ],

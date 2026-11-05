@@ -138,19 +138,21 @@ AUTH_USER_MODEL = "accounts.User"
 ADMIN_WHATSAPP_NUMBER = os.environ.get("ADMIN_WHATSAPP_NUMBER", "+917780383832").strip()
 
 # Email Configuration
-EMAIL_HOST = os.environ.get("WINPLAY_EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.environ.get("WINPLAY_EMAIL_PORT", 587))
-EMAIL_USE_TLS = os.environ.get("WINPLAY_EMAIL_USE_TLS", "True").lower() == "true"
-EMAIL_USE_SSL = os.environ.get("WINPLAY_EMAIL_USE_SSL", "False").lower() == "true"
-EMAIL_HOST_USER = os.environ.get("WINPLAY_EMAIL", "").strip()
-EMAIL_HOST_PASSWORD = os.environ.get("WINPLAY_EMAIL_PASSWORD", "").strip()
-DEFAULT_FROM_EMAIL = os.environ.get(
-    "WINPLAY_FROM_EMAIL",
-    EMAIL_HOST_USER or "winplay@example.com",
+EMAIL_HOST = os.environ.get("EMAIL_HOST") or os.environ.get("WINPLAY_EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT") or os.environ.get("WINPLAY_EMAIL_PORT", 587))
+EMAIL_USE_TLS = (os.environ.get("EMAIL_USE_TLS") or os.environ.get("WINPLAY_EMAIL_USE_TLS", "True")).lower() == "true"
+EMAIL_USE_SSL = (os.environ.get("EMAIL_USE_SSL") or os.environ.get("WINPLAY_EMAIL_USE_SSL", "False")).lower() == "true"
+EMAIL_HOST_USER = (os.environ.get("EMAIL_HOST_USER") or os.environ.get("WINPLAY_EMAIL", "")).strip()
+EMAIL_HOST_PASSWORD = (os.environ.get("EMAIL_HOST_PASSWORD") or os.environ.get("WINPLAY_EMAIL_PASSWORD", "")).strip()
+DEFAULT_FROM_EMAIL = (
+    os.environ.get("DEFAULT_FROM_EMAIL")
+    or os.environ.get("WINPLAY_FROM_EMAIL")
+    or EMAIL_HOST_USER
+    or "winplay@example.com"
 )
 EMAIL_TIMEOUT = 10  # 10s timeout to prevent hanging on SMTP connection issues
 
-# Use SMTP backend only when credentials are provided; otherwise use console backend for local testing
+# Use SMTP backend when credentials are provided; otherwise use console backend
 EMAIL_BACKEND = (
     "django.core.mail.backends.smtp.EmailBackend"
     if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD
