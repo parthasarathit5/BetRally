@@ -1,231 +1,214 @@
 from decimal import Decimal
 from django.core.management.base import BaseCommand
 from apps.games.models import Game
-from apps.accounts.models import User
 from apps.virtual_wallet.models import Wallet
 
 
 class Command(BaseCommand):
-    help = "Seed 20 real playable games into WinPlay / BetRally and ensure wallets"
+    help = "Seed 20 premier real-money betting games into WinPlay / BetRally catalog"
 
     def handle(self, *args, **options):
-        # 1. Remove unwanted games per user requirement
-        removed_slugs = ["rummy", "teen-patti", "poker", "pool", "andar-bahar"]
-        deleted_count, _ = Game.objects.filter(slug__in=removed_slugs).delete()
-        if deleted_count > 0:
-            self.stdout.write(self.style.WARNING(f"Removed {deleted_count} unwanted card/pool games from catalog."))
+        # 1. Clear old games to replace with premier betting catalog
+        Game.objects.all().delete()
+        self.stdout.write(self.style.WARNING("Cleared existing catalog to install premier betting games."))
 
-        # 2. 20 High-Quality Real Games (Deep 10-Min Mechanics, Visual Dashboards, Strict Entry Fees)
+        # 2. 20 High-Stakes Premier Real-Money Betting Games (RajBet, Rummy, WinZO, Zupee style)
         games = [
             {
-                "name": "Mines Arcade",
-                "slug": "mines",
-                "description": "Uncover glowing gems and avoid hidden mines to multiply coins. Cash out anytime!",
+                "name": "RajBet Aviator",
+                "slug": "aviator",
+                "description": "The #1 Crash game! Watch rocket multiplier rise up to 100x+. Cash out before the crash to win big!",
                 "category": "casual",
-                "icon_name": "diamond",
+                "icon_name": "rocket_launch",
                 "entry_fee": Decimal("50.00"),
                 "sort_order": 1,
             },
             {
-                "name": "Blitz Chess",
-                "slug": "chess",
-                "description": "Tactical 10-minute chess battle against grandmaster AI. Checkmate king to claim victory!",
+                "name": "Points Rummy (13 Card)",
+                "slug": "rummy",
+                "description": "Authentic Indian 13-Card Rummy! Form pure sequence, sets, discard cards and declare to beat opponent!",
                 "category": "board",
-                "icon_name": "grid_on",
+                "icon_name": "style",
                 "entry_fee": Decimal("50.00"),
                 "sort_order": 2,
             },
             {
-                "name": "Cricket Clash",
-                "slug": "cricket",
-                "description": "T20 batting championship. Time your shots, smash sixes and chase down the target!",
-                "category": "sports",
-                "icon_name": "sports_cricket",
+                "name": "Dragon vs Tiger Live",
+                "slug": "dragon-tiger",
+                "description": "High-stakes live casino showdown! Bet on Dragon, Tiger or Tie. Highest card takes the pot!",
+                "category": "casual",
+                "icon_name": "casino",
                 "entry_fee": Decimal("50.00"),
                 "sort_order": 3,
             },
             {
-                "name": "Carrom King",
-                "slug": "carrom",
-                "description": "Realistic carrom board physics. Aim striker, pot coins and cover the Red Queen!",
+                "name": "Teen Patti Cash Pro",
+                "slug": "teen-patti",
+                "description": "Pure Indian 3-Patti poker! Blind, Chaal, Pack, Showdown. Form Trail, Pure Sequence or Color to win!",
                 "category": "board",
-                "icon_name": "circle_outlined",
-                "entry_fee": Decimal("40.00"),
+                "icon_name": "style",
+                "entry_fee": Decimal("50.00"),
                 "sort_order": 4,
             },
             {
-                "name": "Galaxy Strike",
-                "slug": "galaxy-strike",
-                "description": "Epic 10-minute space arcade shooter! Pilot fighter ship, blast alien fleets and destroy mothership bosses!",
+                "name": "Fruit Blade Ninja",
+                "slug": "fruit-cutter",
+                "description": "Play Store style fruit slicing battle! Swipe blade across flying fruits, trigger combos, avoid bombs and beat opponent score!",
                 "category": "casual",
-                "icon_name": "rocket_launch",
-                "entry_fee": Decimal("50.00"),
+                "icon_name": "local_florist",
+                "entry_fee": Decimal("25.00"),
                 "sort_order": 5,
             },
             {
-                "name": "Moto Rush",
-                "slug": "moto-rush",
-                "description": "High-octane highway superbike racer. Weave through traffic, activate nitro boost and survive 10 minutes!",
-                "category": "sports",
-                "icon_name": "two_wheeler",
-                "entry_fee": Decimal("40.00"),
+                "name": "Speed Ludo Clash",
+                "slug": "speed-ludo",
+                "description": "Zupee-style 2-player rapid token race! Roll dice, capture opponent tokens (+50 bonus), score maximum points to win!",
+                "category": "board",
+                "icon_name": "casino",
+                "entry_fee": Decimal("30.00"),
                 "sort_order": 6,
             },
             {
-                "name": "Kingdom Tower Defense",
-                "slug": "tower-defense",
-                "description": "Strategic 10-minute castle defense. Build Archer, Cannon & Magic towers to crush 10 enemy invasion waves!",
-                "category": "board",
-                "icon_name": "shield",
-                "entry_fee": Decimal("50.00"),
+                "name": "7 Up 7 Down Royale",
+                "slug": "seven-up-down",
+                "description": "Premier Indian 2-dice betting! Bet on 7 Down (2-6), Lucky 7 (pays 3x!), or 7 Up (8-12). Dice roll determines payout!",
+                "category": "casual",
+                "icon_name": "casino",
+                "entry_fee": Decimal("40.00"),
                 "sort_order": 7,
             },
             {
-                "name": "Speed Football",
-                "slug": "football",
-                "description": "Penalty shootout showdown. Pick your corner, beat the keeper and score 5 penalties!",
-                "category": "sports",
-                "icon_name": "sports_soccer",
+                "name": "Andar Bahar Deluxe",
+                "slug": "andar-bahar",
+                "description": "Traditional Indian card betting! Dealer opens Joker card; bet whether matching card lands on Andar or Bahar!",
+                "category": "board",
+                "icon_name": "style",
                 "entry_fee": Decimal("40.00"),
                 "sort_order": 8,
             },
             {
-                "name": "Speed Ludo",
-                "slug": "ludo",
-                "description": "Rapid dice roll and token race. Capture opponent tokens and reach home first!",
-                "category": "board",
-                "icon_name": "casino",
-                "entry_fee": Decimal("30.00"),
+                "name": "Cricket Super Over",
+                "slug": "cricket-over",
+                "description": "High-pressure 1-Over (6 balls) cricket betting! Time your shots, smash 4s & 6s, and chase opponent target!",
+                "category": "sports",
+                "icon_name": "sports_cricket",
+                "entry_fee": Decimal("50.00"),
                 "sort_order": 9,
             },
             {
-                "name": "2048 Mega Blitz",
-                "slug": "puzzle-2048",
-                "description": "Mind-bending numerical strategy puzzle. Merge tiles (2->4->8...2048), trigger combos and beat high score!",
+                "name": "Jhandi Munda King",
+                "slug": "jhandi-munda",
+                "description": "Iconic 6-symbol street betting game! Bet on Spade, Heart, Club, Diamond, Flag or Face; win up to 6x matching symbols!",
                 "category": "casual",
-                "icon_name": "grid_view",
+                "icon_name": "casino",
                 "entry_fee": Decimal("30.00"),
                 "sort_order": 10,
             },
             {
-                "name": "Aviator Crash",
-                "slug": "aviator",
-                "description": "Rocket climb multiplier. Watch multiplier rise and jump out before it crashes!",
+                "name": "Mines High Roller",
+                "slug": "mines",
+                "description": "5x5 minefield betting! Reveal hidden gems to multiply your stake. Cash out anytime before hitting a mine!",
                 "category": "casual",
-                "icon_name": "rocket",
+                "icon_name": "diamond",
                 "entry_fee": Decimal("50.00"),
                 "sort_order": 11,
             },
             {
-                "name": "Zombie Outbreak",
-                "slug": "zombie-survival",
-                "description": "Intense 10-minute commando survival arena. Shoot undead hordes, scavenge ammo and survive to extract!",
+                "name": "Roulette Royale 36",
+                "slug": "roulette-royale",
+                "description": "European 37-pocket roulette wheel! Bet on Red/Black, Even/Odd, Columns, or single straight-up numbers for 35:1 payout!",
                 "category": "casual",
-                "icon_name": "security",
+                "icon_name": "trip_origin",
                 "entry_fee": Decimal("50.00"),
                 "sort_order": 12,
             },
             {
-                "name": "Blackjack 21",
-                "slug": "blackjack",
-                "description": "Beat dealer's hand without busting over 21. Hit, Stand, or Double down!",
+                "name": "Blackjack 21 VIP",
+                "slug": "blackjack-vip",
+                "description": "Vegas VIP 21 against the Dealer! Hit, Stand, Double Down, Insurance. Beat dealer without going over 21!",
                 "category": "board",
                 "icon_name": "style",
                 "entry_fee": Decimal("50.00"),
                 "sort_order": 13,
             },
             {
-                "name": "European Roulette",
-                "slug": "roulette",
-                "description": "Spin the wheel. Place bets on Red/Black, Even/Odd, or single lucky numbers!",
-                "category": "casual",
-                "icon_name": "trip_origin",
-                "entry_fee": Decimal("30.00"),
+                "name": "Carrom Clash Pro",
+                "slug": "carrom-clash",
+                "description": "Realistic 2-player carrom board physics! Strike white & black pucks, pocket the Red Queen, beat opponent score!",
+                "category": "board",
+                "icon_name": "circle_outlined",
+                "entry_fee": Decimal("40.00"),
                 "sort_order": 14,
             },
             {
-                "name": "Call Break",
-                "slug": "call-break",
-                "description": "Strategic 4-player trick taking. Spades are trumps; bid your hand and win tricks!",
-                "category": "board",
-                "icon_name": "style",
-                "entry_fee": Decimal("40.00"),
+                "name": "Mega Spin Wheel",
+                "slug": "spin-win",
+                "description": "Spin the cash multiplier wheel! Land on 2x, 5x, 10x, 25x or the Mega 50x Jackpot segment!",
+                "category": "casual",
+                "icon_name": "trip_origin",
+                "entry_fee": Decimal("25.00"),
                 "sort_order": 15,
             },
             {
-                "name": "Snakes & Ladders",
-                "slug": "snakes-ladders",
-                "description": "Classic 100-tile race. Climb ladders, dodge snakes, and reach tile 100 first!",
-                "category": "board",
-                "icon_name": "stairs",
+                "name": "Penalty Shootout Cup",
+                "slug": "penalty-kick",
+                "description": "5-kick soccer penalty shootout! Aim corners, curve past the goalkeeper, stop opponent kicks to take the trophy!",
+                "category": "sports",
+                "icon_name": "sports_soccer",
                 "entry_fee": Decimal("30.00"),
                 "sort_order": 16,
             },
             {
-                "name": "Fruit Slice",
-                "slug": "fruit-slice",
-                "description": "Fast-paced arcade action. Slice watermelons, oranges and pineapples; avoid bombs!",
-                "category": "casual",
-                "icon_name": "local_florist",
-                "entry_fee": Decimal("25.00"),
+                "name": "8-Ball Pool Showdown",
+                "slug": "pool-clash",
+                "description": "Premier cue billiards! Aim cue stick, set power spin, sink solids or stripes, pocket 8-ball to win!",
+                "category": "sports",
+                "icon_name": "sports_baseball",
+                "entry_fee": Decimal("50.00"),
                 "sort_order": 17,
             },
             {
-                "name": "Knife Hit",
-                "slug": "knife-hit",
-                "description": "Throw knives into rotating target. Do not hit existing knives. Clear all stages!",
+                "name": "Knife Master Bounty",
+                "slug": "knife-master",
+                "description": "Precision knife target throwing! Throw blades into spinning wood block, avoid colliding with knives, slice bonus apples!",
                 "category": "casual",
                 "icon_name": "flash_on",
                 "entry_fee": Decimal("25.00"),
                 "sort_order": 18,
             },
             {
-                "name": "Archery Master",
-                "slug": "archery",
-                "description": "Olympic bow shooting. Account for wind speed and hit the yellow 10-ring bullseye!",
+                "name": "Archery Bullseye 3D",
+                "slug": "archery-duel",
+                "description": "Olympic target archery! Compensate for wind drift, hit the 10-ring yellow bullseye, outscore opponent over 5 arrows!",
                 "category": "sports",
-                "icon_name": "my_location",
+                "icon_name": "track_changes",
                 "entry_fee": Decimal("30.00"),
                 "sort_order": 19,
             },
             {
-                "name": "Bottle Shoot",
-                "slug": "bottle-shoot",
-                "description": "Quick trigger target shooter. Shatter all moving bottles before the timer expires!",
-                "category": "casual",
-                "icon_name": "track_changes",
-                "entry_fee": Decimal("30.00"),
+                "name": "Call Break Spades Pro",
+                "slug": "call-break-pro",
+                "description": "Strategic 4-hand trick taking card battle! Bid your hand count, lead trump spades, win required tricks for the pot!",
+                "category": "board",
+                "icon_name": "style",
+                "entry_fee": Decimal("40.00"),
                 "sort_order": 20,
             },
         ]
 
         created_count = 0
-        updated_count = 0
         for g_data in games:
-            game, created = Game.objects.get_or_create(
+            game = Game.objects.create(
+                name=g_data["name"],
                 slug=g_data["slug"],
-                defaults=g_data,
+                description=g_data["description"],
+                category=g_data["category"],
+                icon_name=g_data["icon_name"],
+                entry_fee=g_data["entry_fee"],
+                sort_order=g_data["sort_order"],
+                is_active=True,
             )
-            if created:
-                created_count += 1
-            else:
-                for k, v in g_data.items():
-                    setattr(game, k, v)
-                game.is_active = True
-                game.save()
-                updated_count += 1
+            created_count += 1
+            self.stdout.write(f"  [+] #{created_count}: {game.name} ({game.slug}) - Fee: INR {game.entry_fee}")
 
-        wallet_count = 0
-        for user in User.objects.all():
-            w, c = Wallet.objects.get_or_create(
-                user=user,
-                defaults={"balance": Decimal("0.00")},
-            )
-            if c:
-                wallet_count += 1
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Seeding complete! {created_count} new games created, {updated_count} games updated, {wallet_count} new wallets verified in Supabase."
-            )
-        )
+        self.stdout.write(self.style.SUCCESS(f"\nSuccessfully seeded {created_count} premier betting games into database!"))
