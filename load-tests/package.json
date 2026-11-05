@@ -1,0 +1,14 @@
+{
+  "name": "load-tests",
+  "version": "1.0.0",
+  "description": "BetRally Load Testing & Performance Suite",
+  "main": "tests/load-real-tests.js",
+  "scripts": {
+    "test": "node tests/load-real-tests.js",
+    "test:baseline": "node baseline-load-test.js"
+  },
+  "dependencies": {
+    "axios": "^1.20.0",
+    "xlsx": "^0.18.5"
+  }
+}

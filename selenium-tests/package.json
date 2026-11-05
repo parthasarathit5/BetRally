@@ -1,0 +1,13 @@
+{
+  "name": "selenium-tests",
+  "version": "1.0.0",
+  "description": "BetRally Web Selenium E2E Automation Suite",
+  "main": "tests/selenium-real-tests.js",
+  "scripts": {
+    "test": "node tests/selenium-real-tests.js"
+  },
+  "dependencies": {
+    "axios": "^1.20.0",
+    "xlsx": "^0.18.5"
+  }
+}

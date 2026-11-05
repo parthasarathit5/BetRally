@@ -1,0 +1,250 @@
+name: Scale E2E suites to 1800 test cases with robust Selenium/Appium
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target API Base URL'
+        required: true
+        default: 'https://betrally.onrender.com'
+        type: string
+
+jobs:
+
+  # 1. SELENIUM — WEBSITE TESTS (300)
+  selenium-tests:
+    name: 🌐 Selenium — Website Tests (300)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Dependencies
+        run: |
+          cd shared-utils && npm install --silent || true
+          cd ../selenium-tests && npm install --silent
+
+      - name: 🌐 Run 300 Selenium Website Tests
+        env:
+          BASE_URL: ${{ github.event.inputs.target_url || 'https://nexlyn-8fd9c.web.app' }}
+        run: |
+          cd selenium-tests
+          npm test
+
+      - name: 📊 Upload Suite Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-test-results
+          path: selenium-tests/test-results/
+
+  # 2. APPIUM — ANDROID TESTS (300)
+  appium-tests:
+    name: 📱 Appium — Android Tests (300)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Dependencies
+        run: |
+          cd shared-utils && npm install --silent || true
+          cd ../appium-tests && npm install --silent
+
+      - name: 📱 Run 300 Appium Android Tests
+        run: |
+          cd appium-tests
+          npm test
+
+      - name: 📊 Upload Suite Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-test-results
+          path: appium-tests/test-results/
+
+  # 3. UNIT TESTS — API (300)
+  api-tests:
+    name: 🔬 Unit Tests — API (300)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Dependencies
+        run: |
+          cd shared-utils && npm install --silent || true
+          cd ../api-tests && npm install --silent
+
+      - name: 🔬 Run 300 API Unit Tests
+        env:
+          API_BASE_URL: ${{ github.event.inputs.target_url || 'https://betrally.onrender.com' }}
+        run: |
+          cd api-tests
+          npm test
+
+      - name: 📊 Upload Suite Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: api-tests/test-results/
+
+  # 4. VALIDATION TESTS (300)
+  validation-tests:
+    name: ✅ Validation Tests (300)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Dependencies
+        run: |
+          cd shared-utils && npm install --silent || true
+          cd ../validation-tests && npm install --silent
+
+      - name: ✅ Run 300 Validation Tests
+        run: |
+          cd validation-tests
+          npm test
+
+      - name: 📊 Upload Suite Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-test-results
+          path: validation-tests/test-results/
+
+  # 5. DEPLOYMENT STATUS (300)
+  deployment-status:
+    name: 🚀 Deployment Status (300)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Dependencies
+        run: |
+          cd shared-utils && npm install --silent || true
+          cd ../deployment-tests && npm install --silent
+
+      - name: 🚀 Run 300 Deployment Status Probes
+        run: |
+          cd deployment-tests
+          npm test
+
+      - name: 📊 Upload Suite Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-test-results
+          path: deployment-tests/test-results/
+
+  # 6. LOAD TESTING — PERFORMANCE (300)
+  load-tests:
+    name: 📊 Load Testing — Performance (300)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Dependencies
+        run: |
+          cd shared-utils && npm install --silent || true
+          cd ../load-tests && npm install --silent
+
+      - name: 📊 Run 300 Load & Performance Tests
+        env:
+          API_BASE_URL: ${{ github.event.inputs.target_url || 'https://betrally.onrender.com' }}
+        run: |
+          cd load-tests
+          npm test
+
+      - name: 📊 Upload Suite Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results
+          path: load-tests/test-results/
+
+  # 7. COMPILE MASTER REPORT & DEPLOY
+  master-report:
+    name: 📑 Compile Master Report & Deploy
+    needs: [selenium-tests, appium-tests, api-tests, validation-tests, deployment-status, load-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Download All Suite Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts-download
+
+      - name: 🔄 Place Test Results for Aggregation
+        run: |
+          mkdir -p selenium-tests/test-results appium-tests/test-results api-tests/test-results validation-tests/test-results deployment-tests/test-results load-tests/test-results
+          cp -r artifacts-download/selenium-test-results/* selenium-tests/test-results/ 2>/dev/null || true
+          cp -r artifacts-download/appium-test-results/* appium-tests/test-results/ 2>/dev/null || true
+          cp -r artifacts-download/api-test-results/* api-tests/test-results/ 2>/dev/null || true
+          cp -r artifacts-download/validation-test-results/* validation-tests/test-results/ 2>/dev/null || true
+          cp -r artifacts-download/deployment-test-results/* deployment-tests/test-results/ 2>/dev/null || true
+          cp -r artifacts-download/load-test-results/* load-tests/test-results/ 2>/dev/null || true
+
+      - name: 📦 Install Master Reporter Dependencies
+        run: |
+          cd master-reporter && npm install --silent
+
+      - name: 📑 Compile Master Excel & HTML Reports (1800 Cases)
+        run: |
+          cd master-reporter
+          node compile-master-report.js
+
+      - name: 🚀 Upload Master 1800 Test Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: BetRally-Master-Test-Reports-1800
+          path: master-test-results/
+          retention-days: 30
