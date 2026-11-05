@@ -75,3 +75,4 @@ jobs:
         run: |
           cd mobile_app
           flutter build web --release --no-pub
+
