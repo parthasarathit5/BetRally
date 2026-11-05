@@ -15,13 +15,22 @@ class Command(BaseCommand):
         # 2. 20 High-Stakes Premier Real-Money Betting Games (RajBet, Rummy, WinZO, Zupee style)
         games = [
             {
+                "name": "Blitz Chess Pro",
+                "slug": "chess",
+                "description": "Tactical 10-minute real chess battle! Checkmate king to claim victory pot!",
+                "category": "board",
+                "icon_name": "grid_on",
+                "entry_fee": Decimal("50.00"),
+                "sort_order": 1,
+            },
+            {
                 "name": "RajBet Aviator",
                 "slug": "aviator",
                 "description": "The #1 Crash game! Watch rocket multiplier rise up to 100x+. Cash out before the crash to win big!",
                 "category": "casual",
                 "icon_name": "rocket_launch",
                 "entry_fee": Decimal("50.00"),
-                "sort_order": 1,
+                "sort_order": 2,
             },
             {
                 "name": "Points Rummy (13 Card)",
@@ -174,15 +183,6 @@ class Command(BaseCommand):
                 "category": "casual",
                 "icon_name": "flash_on",
                 "entry_fee": Decimal("25.00"),
-                "sort_order": 18,
-            },
-            {
-                "name": "Archery Bullseye 3D",
-                "slug": "archery-duel",
-                "description": "Olympic target archery! Compensate for wind drift, hit the 10-ring yellow bullseye, outscore opponent over 5 arrows!",
-                "category": "sports",
-                "icon_name": "track_changes",
-                "entry_fee": Decimal("30.00"),
                 "sort_order": 19,
             },
             {

@@ -396,7 +396,31 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           ],
         ),
         actions: [
-          if (whatsappUrl != null)
+          if (isWin)
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: green,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              icon: const Icon(Icons.card_giftcard, color: Colors.black),
+              label: Text(
+                'COLLECT WINNINGS (₹${payout.toStringAsFixed(2)})',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              onPressed: () async {
+                final nav = Navigator.of(context);
+                final dialogNav = Navigator.of(ctx);
+                final wa = whatsappUrl ?? 'https://wa.me/917780383832?text=${Uri.encodeComponent("Hello Admin, I WON ₹${payout.toStringAsFixed(2)} in Blitz Chess on BetRally! Match Ref: $matchRef. Please verify my wallet credit.")}';
+                final uri = Uri.parse(wa);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+                dialogNav.pop();
+                nav.pop();
+              },
+            )
+          else if (whatsappUrl != null)
             TextButton.icon(
               icon: const Icon(Icons.chat, color: green, size: 18),
               label: const Text('REPORT TO ADMIN', style: TextStyle(color: green, fontWeight: FontWeight.bold)),
@@ -407,7 +431,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                 }
               },
             ),
-          FilledButton(
+          OutlinedButton(
             onPressed: () {
               Navigator.pop(ctx);
               Navigator.pop(context);

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../widgets/betting_match_dialog.dart';
 
@@ -155,7 +156,49 @@ Widget buildMatchResultCard({
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+
+          // COLLECT WINNINGS BUTTON
+          if (isWin) ...[
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: green,
+                foregroundColor: Colors.black,
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 4,
+              ),
+              icon: const Icon(Icons.card_giftcard, size: 22, color: Colors.black),
+              label: Text(
+                'COLLECT WINNINGS (₹${payoutWon.toStringAsFixed(2)})',
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+              ),
+              onPressed: () async {
+                const cleanPhone = '917780383832';
+                final msg = Uri.encodeComponent(
+                  'Hello Admin, I WON ₹${payoutWon.toStringAsFixed(2)} playing $gameName on BetRally/WinPlay!\n'
+                  'Opponent: $opponentName\n'
+                  'Stake: ₹${betAmount.toStringAsFixed(2)}\n'
+                  'Prize Payout: ₹${payoutWon.toStringAsFixed(2)}\n'
+                  'Please verify my winning credit in Admin Dashboard.',
+                );
+                final uri = Uri.parse('https://wa.me/$cleanPhone?text=$msg');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: green,
+                      content: Text('🎉 ₹${payoutWon.toStringAsFixed(2)} credited to your wallet!'),
+                    ),
+                  );
+                }
+                onExit();
+              },
+            ),
+            const SizedBox(height: 14),
+          ],
 
           // Actions
           Row(

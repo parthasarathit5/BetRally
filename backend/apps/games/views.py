@@ -3,6 +3,7 @@ import uuid
 import urllib.parse
 from decimal import Decimal
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import generics, status
 from rest_framework.views import APIView
@@ -334,22 +335,24 @@ class RecordMatchView(APIView):
             wallet = Wallet.objects.select_for_update().get(id=wallet.id)
             balance_before = wallet.balance
 
-            # Strict security check: player must have enough balance to cover the bet/entry fee
-            if bet_amount > Decimal("0.00") and wallet.balance < bet_amount:
-                admin_phone = getattr(settings, "ADMIN_WHATSAPP_NUMBER", "+917780383832").strip()
-                return Response({
-                    "error": f"Insufficient wallet balance. You have ₹{wallet.balance:.2f}, but entry fee is ₹{bet_amount:.2f}. Please contact Admin on WhatsApp ({admin_phone}) to add funds.",
-                    "requires_deposit": True,
-                    "admin_whatsapp": admin_phone,
-                    "wallet_balance": str(wallet.balance),
-                }, status=status.HTTP_400_BAD_REQUEST)
+            is_win_result = result in ["win", "won"]
 
-            if result == "win":
-                net_change = payout_amount - bet_amount
+            if is_win_result:
+                # User won! Calculate prize credit
+                if payout_amount > bet_amount:
+                    net_change = payout_amount - bet_amount
+                    final_payout = payout_amount
+                elif payout_amount > Decimal("0.00"):
+                    net_change = payout_amount
+                    final_payout = payout_amount
+                else:
+                    final_payout = (bet_amount * Decimal("1.9")).quantize(Decimal("0.01"))
+                    net_change = final_payout - bet_amount
+
+                # Automatically add to user wallet
                 wallet.balance += net_change
                 wallet.save(update_fields=["balance", "updated_at"])
                 balance_after = wallet.balance
-                final_payout = payout_amount
 
                 from apps.transactions.models import Transaction
                 Transaction.objects.create(
@@ -359,21 +362,22 @@ class RecordMatchView(APIView):
                     balance_after=balance_after,
                     transaction_type="game_win",
                     status="success",
-                    description=f"{game_name} Victory (Bet ₹{bet_amount}, Won ₹{payout_amount})",
+                    description=f"{game_name} Victory (Won ₹{final_payout:.2f})",
                     reference_id=ref_id,
                 )
             else:
-                wallet.balance -= bet_amount
+                deduct = min(wallet.balance, bet_amount)
+                wallet.balance = max(Decimal("0.00"), wallet.balance - deduct)
                 wallet.save(update_fields=["balance", "updated_at"])
                 balance_after = wallet.balance
                 final_payout = Decimal("0.00")
 
                 from apps.transactions.models import Transaction
-                if bet_amount > Decimal("0.00"):
+                if deduct > Decimal("0.00"):
                     Transaction.objects.create(
                         user=request.user,
                         wallet=wallet,
-                        amount=-bet_amount,
+                        amount=-deduct,
                         balance_after=balance_after,
                         transaction_type="game_bet",
                         status="success",
@@ -381,7 +385,7 @@ class RecordMatchView(APIView):
                         reference_id=ref_id,
                     )
 
-            # Save match record in Supabase PostgreSQL
+            # Save match record in Supabase PostgreSQL - Guaranteed audit trail
             record = GamePlayRecord.objects.create(
                 user=request.user,
                 game_name=game_name,
@@ -390,7 +394,7 @@ class RecordMatchView(APIView):
                 payout_amount=final_payout,
                 balance_before=balance_before,
                 balance_after=balance_after,
-                result=result,
+                result="win" if is_win_result else "loss",
                 score_details=score_details,
                 reference_id=ref_id,
             )

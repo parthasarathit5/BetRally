@@ -9,6 +9,7 @@ import 'aviator_game_screen.dart';
 import 'card_games_screens.dart' hide AndarBaharScreen;
 import 'arcade_games_screens.dart';
 import 'carrom_game_screen.dart';
+import 'chess_game_screen.dart';
 import 'football_game_screen.dart';
 
 const bg = Color(0xFF090B1A);
@@ -119,6 +120,13 @@ class _GamesScreenState extends State<GamesScreen> {
 
     Widget screen;
     switch (slug) {
+      case 'chess':
+        screen = ChessGameScreen(
+          userBalance: userBalance,
+          entryFee: betAmount,
+          onGameFinished: onGameReturned,
+        );
+        break;
       case 'fruit-cutter':
       case 'fruit-slice':
         screen = FruitBladeNinjaScreen(

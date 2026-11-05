@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../widgets/betting_match_dialog.dart';
 
@@ -703,7 +704,45 @@ class _FruitBladeNinjaScreenState extends State<FruitBladeNinjaScreen> with Sing
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // COLLECT WINNINGS & NOTIFY ADMIN
+            if (isWin) ...[
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: green,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 4,
+                ),
+                icon: const Icon(Icons.card_giftcard, size: 22, color: Colors.black),
+                label: Text(
+                  'COLLECT WINNINGS (₹${payoutWon.toStringAsFixed(2)})',
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                ),
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final nav = Navigator.of(context);
+                  final wa = adminWhatsApp != null
+                      ? 'https://wa.me/${adminWhatsApp!.replaceAll("+", "").replaceAll(" ", "")}?text=${Uri.encodeComponent("Hello Admin, I WON ₹${payoutWon.toStringAsFixed(2)} playing Fruit Blade Ninja on BetRally! Score: $playerScore pts. Match Ref: $matchRef. Please verify my wallet credit.")}'
+                      : 'https://wa.me/917780383832?text=${Uri.encodeComponent("Hello Admin, I WON ₹${payoutWon.toStringAsFixed(2)} playing Fruit Blade Ninja on BetRally! Score: $playerScore pts. Match Ref: $matchRef. Please verify my wallet credit.")}';
+                  final uri = Uri.parse(wa);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                  messenger.showSnackBar(
+                    SnackBar(
+                      backgroundColor: green,
+                      content: Text('🎉 ₹${payoutWon.toStringAsFixed(2)} credited to your wallet!'),
+                    ),
+                  );
+                  widget.onGameFinished?.call();
+                  nav.pop();
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Action Buttons
             Row(
