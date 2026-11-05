@@ -1,11 +1,22 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'token_storage.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/accounts';
-  static const String gamesUrl = 'http://127.0.0.1:8000/api/games';
-  static const String walletUrl = 'http://127.0.0.1:8000/api/wallet';
+  static String customBackendUrl = '';
+
+  static String get backendRoot {
+    if (customBackendUrl.isNotEmpty) return customBackendUrl;
+    if (kReleaseMode) {
+      return 'https://betrally-backend.onrender.com';
+    }
+    return 'http://127.0.0.1:8000';
+  }
+
+  static String get baseUrl => '$backendRoot/api/accounts';
+  static String get gamesUrl => '$backendRoot/api/games';
+  static String get walletUrl => '$backendRoot/api/wallet';
 
   // ---------------- REGISTER ----------------
 
