@@ -227,3 +227,4 @@ python tests/run_1800_suite.py
 ## 📄 License & Ownership
 Copyright © 2026 **BetRally / WinPlay Gaming Platform**. All rights reserved.  
 Support & Business Inquiries: **+91 7780383832**
+
