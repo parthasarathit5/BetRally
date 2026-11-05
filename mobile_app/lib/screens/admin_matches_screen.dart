@@ -132,47 +132,120 @@ class _AdminMatchesScreenState extends State<AdminMatchesScreen> {
                                   final isWin = m['result'] == 'win';
                                   final date = m['created_at']?.toString().split('T').first ?? '';
 
+                                  final balBefore = m['balance_before']?.toString() ?? '-';
+                                  final balAfter = m['balance_after']?.toString() ?? '-';
+
                                   return Card(
                                     color: surface,
-                                    margin: const EdgeInsets.only(bottom: 10),
-                                    child: ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: isWin ? teal.withValues(alpha: 0.2) : pink.withValues(alpha: 0.2),
-                                        child: Icon(
-                                          isWin ? Icons.emoji_events : Icons.close,
-                                          color: isWin ? teal : pink,
-                                        ),
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      side: BorderSide(
+                                        color: isWin ? teal.withValues(alpha: 0.3) : pink.withValues(alpha: 0.2),
                                       ),
-                                      title: Row(
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(14),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Expanded(
-                                            child: Text(
-                                              '${m['username']} • ${m['game_name']}',
-                                              style: const TextStyle(fontWeight: FontWeight.bold),
+                                          Row(
+                                            children: [
+                                              CircleAvatar(
+                                                backgroundColor: isWin ? teal.withValues(alpha: 0.2) : pink.withValues(alpha: 0.2),
+                                                child: Icon(
+                                                  isWin ? Icons.emoji_events : Icons.close,
+                                                  color: isWin ? teal : pink,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      '${m['username']} (ID: #${m['user_id']})',
+                                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                                    ),
+                                                    Text(
+                                                      m['game_name']?.toString() ?? 'Game',
+                                                      style: const TextStyle(color: gold, fontSize: 13, fontWeight: FontWeight.w600),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: (isWin ? teal : pink).withValues(alpha: 0.2),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(color: (isWin ? teal : pink).withValues(alpha: 0.4)),
+                                                ),
+                                                child: Text(
+                                                  (m['result']?.toString() ?? '').toUpperCase(),
+                                                  style: TextStyle(
+                                                    color: isWin ? teal : pink,
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 12,
+                                                    letterSpacing: 0.8,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Container(
+                                            padding: const EdgeInsets.all(10),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black26,
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    const Text('BET AMOUNT', style: TextStyle(fontSize: 10, color: Colors.white54, fontWeight: FontWeight.bold)),
+                                                    const SizedBox(height: 2),
+                                                    Text('₹${m['bet_amount']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                                                  ],
+                                                ),
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    const Text('PAYOUT', style: TextStyle(fontSize: 10, color: Colors.white54, fontWeight: FontWeight.bold)),
+                                                    const SizedBox(height: 2),
+                                                    Text('₹${m['payout_amount']}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isWin ? teal : Colors.white60)),
+                                                  ],
+                                                ),
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                                  children: [
+                                                    const Text('WALLET FLOW', style: TextStyle(fontSize: 10, color: Colors.white54, fontWeight: FontWeight.bold)),
+                                                    const SizedBox(height: 2),
+                                                    Text('₹$balBefore ➔ ₹$balAfter', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: gold)),
+                                                  ],
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: (isWin ? teal : pink).withValues(alpha: 0.15),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              (m['result']?.toString() ?? '').toUpperCase(),
-                                              style: TextStyle(
-                                                color: isWin ? teal : pink,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 11,
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Ref: ${m['reference_id']}',
+                                                style: const TextStyle(fontSize: 11, color: Colors.white38),
                                               ),
-                                            ),
+                                              Text(
+                                                date,
+                                                style: const TextStyle(fontSize: 11, color: Colors.white38),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
-                                      subtitle: Text(
-                                        'Player ID: #${m['user_id']} • Bet: ₹${m['bet_amount']} • Payout: ₹${m['payout_amount']}\nDate: $date • Ref: ${m['reference_id']}',
-                                        style: const TextStyle(fontSize: 12, color: Colors.white60),
-                                      ),
-                                      isThreeLine: true,
                                     ),
                                   );
                                 },

@@ -98,6 +98,8 @@ class GamePlayRecord(models.Model):
     game_slug = models.CharField(max_length=120)
     bet_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     payout_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    balance_before = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    balance_after = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     result = models.CharField(max_length=20, choices=RESULT_CHOICES)
     score_details = models.JSONField(default=dict, blank=True)
     reference_id = models.CharField(max_length=64, blank=True)

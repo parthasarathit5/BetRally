@@ -1590,42 +1590,131 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
 
     final totalPlayers = stats?['total_players']?.toString() ?? '0';
-    final activeGames = stats?['active_games']?.toString() ?? '0';
     final pool = stats?['total_wallet_pool']?.toString() ?? '0.00';
+    final houseProfit = stats?['house_profit']?.toString() ?? '0.00';
     final pendingDep = stats?['pending_deposits']?.toString() ?? '0';
+    final pendingWth = stats?['pending_withdrawals']?.toString() ?? '0';
+    final totalMatches = stats?['total_matches']?.toString() ?? '0';
+    final matchesWon = stats?['matches_won']?.toString() ?? '0';
+    final recentAct = (stats?['recent_activity'] as List?) ?? [];
 
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 2.1,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildStatCard(
-          icon: Icons.people,
-          label: 'Total Players',
-          value: totalPlayers,
-          color: teal,
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 2.0,
+          children: [
+            _buildStatCard(
+              icon: Icons.people,
+              label: 'Total Players',
+              value: totalPlayers,
+              color: teal,
+            ),
+            _buildStatCard(
+              icon: Icons.account_balance_wallet,
+              label: 'User Balances Pool',
+              value: '₹$pool',
+              color: blue,
+            ),
+            _buildStatCard(
+              icon: Icons.monetization_on,
+              label: 'House Profit',
+              value: '₹$houseProfit',
+              color: gold,
+            ),
+            _buildStatCard(
+              icon: Icons.price_check,
+              label: 'Pending Deposits',
+              value: pendingDep,
+              color: pendingDep != '0' ? gold : Colors.white60,
+            ),
+            _buildStatCard(
+              icon: Icons.outbox,
+              label: 'Pending Withdrawals',
+              value: pendingWth,
+              color: pendingWth != '0' ? pink : Colors.white60,
+            ),
+            _buildStatCard(
+              icon: Icons.sports_esports,
+              label: 'Matches (Wins/Total)',
+              value: '$matchesWon / $totalMatches',
+              color: purple,
+            ),
+          ],
         ),
-        _buildStatCard(
-          icon: Icons.sports_esports,
-          label: 'Active Games',
-          value: activeGames,
-          color: purple,
-        ),
-        _buildStatCard(
-          icon: Icons.account_balance_wallet,
-          label: 'Wallet Pool',
-          value: '₹$pool',
-          color: blue,
-        ),
-        _buildStatCard(
-          icon: Icons.pending_actions,
-          label: 'Pending Deposits',
-          value: pendingDep,
-          color: pendingDep != '0' ? gold : Colors.white60,
-        ),
+        if (recentAct.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const Row(
+            children: [
+              Icon(Icons.bolt, color: gold, size: 18),
+              SizedBox(width: 6),
+              Text(
+                'LIVE PLAYER ACTIVITY TICKER',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Column(
+              children: recentAct.take(4).map((act) {
+                final isWin = act['result'] == 'win';
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isWin ? teal : pink,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${act["username"]} played ${act["game_name"]} (Bet ₹${act["bet_amount"]})',
+                          style: const TextStyle(fontSize: 12, color: Colors.white),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        isWin ? '+₹${act["payout_amount"]}' : 'LOST',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isWin ? teal : pink,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        act['created_at'].toString(),
+                        style: const TextStyle(fontSize: 10, color: Colors.white38),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ],
     );
   }

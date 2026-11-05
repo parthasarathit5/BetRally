@@ -12,7 +12,7 @@ class Wallet(models.Model):
     balance = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        default=Decimal("100.00"),  # ₹100 Welcome Bonus
+        default=Decimal("0.00"),
     )
     currency = models.CharField(max_length=10, default="INR")
     is_locked = models.BooleanField(default=False)

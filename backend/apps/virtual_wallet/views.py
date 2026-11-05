@@ -32,7 +32,7 @@ class WalletDetailView(APIView):
     def get(self, request):
         wallet, _ = Wallet.objects.get_or_create(
             user=request.user,
-            defaults={"balance": Decimal("100.00")},
+            defaults={"balance": Decimal("0.00")},
         )
         serializer = WalletSerializer(wallet)
         data = serializer.data
@@ -41,37 +41,16 @@ class WalletDetailView(APIView):
 
 
 class WalletDepositView(APIView):
+    """
+    Automated self-service deposits are disabled for security.
+    All deposits must be verified and approved by the Administrator (+91 7780383832).
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = DepositRequestSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        amount = Decimal(str(serializer.validated_data["amount"]))
-        payment_method = serializer.validated_data.get("payment_method", "UPI")
-
-        wallet, _ = Wallet.objects.get_or_create(
-            user=request.user,
-            defaults={"balance": Decimal("100.00")},
-        )
-
-        ref_id = f"DEP-{uuid.uuid4().hex[:10].upper()}"
-        try:
-            wallet.credit(
-                amount=amount,
-                description=f"Deposit via {payment_method}",
-                reference_id=ref_id,
-                transaction_type="deposit",
-            )
-        except ValueError as err:
-            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
-
         return Response({
-            "message": f"Successfully deposited ₹{amount:.2f}",
-            "balance": str(wallet.balance),
-            "reference_id": ref_id,
-        }, status=status.HTTP_200_OK)
+            "error": "Self-service automated deposits are disabled for platform security. Please use the WhatsApp deposit option to submit your deposit proof directly to Admin (+91 7780383832)."
+        }, status=status.HTTP_403_FORBIDDEN)
 
 
 class WhatsAppDepositRequestView(APIView):
@@ -92,7 +71,7 @@ class WhatsAppDepositRequestView(APIView):
 
         wallet, _ = Wallet.objects.get_or_create(
             user=request.user,
-            defaults={"balance": Decimal("100.00")},
+            defaults={"balance": Decimal("0.00")},
         )
 
         ref_id = f"WA-DEP-{uuid.uuid4().hex[:8].upper()}"

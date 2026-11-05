@@ -303,7 +303,7 @@ class MinesCashoutView(APIView):
 
 class RecordMatchView(APIView):
     """
-    Records match completion for any of the 20 playable games (Chess, Cricket, Carrom, Rummy, Teen Patti, Poker, etc.)
+    Records match completion for any of the 20 playable games (Chess, Cricket, Carrom, Galaxy Strike, Tower Defense, etc.)
     Validates wallet balance, processes entry fee and win payouts atomically, and creates an audit record in Supabase.
     """
     permission_classes = [IsAuthenticated]
@@ -325,45 +325,75 @@ class RecordMatchView(APIView):
 
         wallet, _ = Wallet.objects.get_or_create(
             user=request.user,
-            defaults={"balance": Decimal("100.00")},
+            defaults={"balance": Decimal("0.00")},
         )
 
         ref_id = f"MATCH-{game_slug[:6].upper()}-{uuid.uuid4().hex[:8].upper()}"
 
-        if result == "loss":
-            if not wallet.can_afford(bet_amount):
-                return Response({
-                    "error": f"Insufficient wallet balance. You have ₹{wallet.balance}, required ₹{bet_amount}."
-                }, status=status.HTTP_400_BAD_REQUEST)
-            wallet.debit(
-                amount=bet_amount,
-                description=f"{game_name} Match Entry / Loss",
-                reference_id=ref_id,
-                transaction_type="game_bet",
-            )
-            final_payout = Decimal("0.00")
-        elif result == "win":
-            wallet.credit(
-                amount=payout_amount,
-                description=f"{game_name} Match Victory Payout",
-                reference_id=ref_id,
-                transaction_type="game_win",
-            )
-            final_payout = payout_amount
-        else:
-            final_payout = Decimal("0.00")
+        with transaction.atomic():
+            wallet = Wallet.objects.select_for_update().get(id=wallet.id)
+            balance_before = wallet.balance
 
-        # Save match record in Supabase PostgreSQL
-        record = GamePlayRecord.objects.create(
-            user=request.user,
-            game_name=game_name,
-            game_slug=game_slug,
-            bet_amount=bet_amount,
-            payout_amount=final_payout,
-            result=result,
-            score_details=score_details,
-            reference_id=ref_id,
-        )
+            # Strict security check: player must have enough balance to cover the bet/entry fee
+            if bet_amount > Decimal("0.00") and wallet.balance < bet_amount:
+                admin_phone = getattr(settings, "ADMIN_WHATSAPP_NUMBER", "+917780383832").strip()
+                return Response({
+                    "error": f"Insufficient wallet balance. You have ₹{wallet.balance:.2f}, but entry fee is ₹{bet_amount:.2f}. Please contact Admin on WhatsApp ({admin_phone}) to add funds.",
+                    "requires_deposit": True,
+                    "admin_whatsapp": admin_phone,
+                    "wallet_balance": str(wallet.balance),
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if result == "win":
+                net_change = payout_amount - bet_amount
+                wallet.balance += net_change
+                wallet.save(update_fields=["balance", "updated_at"])
+                balance_after = wallet.balance
+                final_payout = payout_amount
+
+                from apps.transactions.models import Transaction
+                Transaction.objects.create(
+                    user=request.user,
+                    wallet=wallet,
+                    amount=net_change,
+                    balance_after=balance_after,
+                    transaction_type="game_win",
+                    status="success",
+                    description=f"{game_name} Victory (Bet ₹{bet_amount}, Won ₹{payout_amount})",
+                    reference_id=ref_id,
+                )
+            else:
+                wallet.balance -= bet_amount
+                wallet.save(update_fields=["balance", "updated_at"])
+                balance_after = wallet.balance
+                final_payout = Decimal("0.00")
+
+                from apps.transactions.models import Transaction
+                if bet_amount > Decimal("0.00"):
+                    Transaction.objects.create(
+                        user=request.user,
+                        wallet=wallet,
+                        amount=-bet_amount,
+                        balance_after=balance_after,
+                        transaction_type="game_bet",
+                        status="success",
+                        description=f"{game_name} Match Entry / Loss",
+                        reference_id=ref_id,
+                    )
+
+            # Save match record in Supabase PostgreSQL
+            record = GamePlayRecord.objects.create(
+                user=request.user,
+                game_name=game_name,
+                game_slug=game_slug,
+                bet_amount=bet_amount,
+                payout_amount=final_payout,
+                balance_before=balance_before,
+                balance_after=balance_after,
+                result=result,
+                score_details=score_details,
+                reference_id=ref_id,
+            )
 
         admin_phone = getattr(settings, "ADMIN_WHATSAPP_NUMBER", "+917780383832").replace(" ", "").replace("-", "")
         wa_text = (
@@ -372,8 +402,9 @@ class RecordMatchView(APIView):
             f"Username: {request.user.username}\n"
             f"Game: {game_name}\n"
             f"Result: {result.upper()}\n"
-            f"Entry: ₹{bet_amount}\n"
-            f"Payout: ₹{final_payout}\n"
+            f"Entry: ₹{bet_amount:.2f}\n"
+            f"Payout: ₹{final_payout:.2f}\n"
+            f"Wallet: ₹{balance_after:.2f}\n"
             f"Match Ref: {ref_id}\n"
             f"Date: {record.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
         )
@@ -388,7 +419,9 @@ class RecordMatchView(APIView):
             "result": result,
             "bet_amount": str(bet_amount),
             "payout_amount": str(final_payout),
-            "wallet_balance": str(wallet.balance),
+            "balance_before": str(balance_before),
+            "balance_after": str(balance_after),
+            "wallet_balance": str(balance_after),
             "whatsapp_admin_url": wa_url,
             "admin_whatsapp_number": admin_phone,
         }, status=status.HTTP_201_CREATED)
@@ -407,6 +440,7 @@ class AdminMatchRecordsView(APIView):
         records = GamePlayRecord.objects.select_related("user").all()
 
         if search:
+            from django.db.models import Q
             records = records.filter(
                 Q(user__username__icontains=search) |
                 Q(user__email__icontains=search) |
@@ -428,6 +462,8 @@ class AdminMatchRecordsView(APIView):
                 "game_slug": r.game_slug,
                 "bet_amount": str(r.bet_amount),
                 "payout_amount": str(r.payout_amount),
+                "balance_before": str(getattr(r, "balance_before", "0.00")),
+                "balance_after": str(getattr(r, "balance_after", "0.00")),
                 "result": r.result,
                 "score_details": r.score_details,
                 "reference_id": r.reference_id,

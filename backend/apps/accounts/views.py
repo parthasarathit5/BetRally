@@ -363,10 +363,30 @@ class AdminDashboardStatsView(APIView):
         total_withdrawals_paid = Transaction.objects.filter(transaction_type="withdrawal", status="success").aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
         
         total_matches = GamePlayRecord.objects.count()
-        matches_won = GamePlayRecord.objects.filter(result="won").count()
-        matches_lost = GamePlayRecord.objects.filter(result="lost").count()
+        matches_won = GamePlayRecord.objects.filter(
+            Q(result__iexact="win") | Q(result__iexact="won") | Q(result__iexact="cashed_out")
+        ).count()
+        matches_lost = GamePlayRecord.objects.filter(
+            Q(result__iexact="loss") | Q(result__iexact="lost") | Q(result__iexact="busted")
+        ).count()
         total_bet_volume = GamePlayRecord.objects.aggregate(total=Sum("bet_amount"))["total"] or Decimal("0.00")
         total_payout_volume = GamePlayRecord.objects.aggregate(total=Sum("payout_amount"))["total"] or Decimal("0.00")
+        house_profit = total_bet_volume - total_payout_volume
+
+        recent_records = GamePlayRecord.objects.select_related("user").order_by("-created_at")[:10]
+        recent_activity = [
+            {
+                "id": r.id,
+                "user_id": r.user.id,
+                "username": r.user.username,
+                "game_name": r.game_name,
+                "bet_amount": str(r.bet_amount),
+                "payout_amount": str(r.payout_amount),
+                "result": r.result,
+                "created_at": r.created_at.strftime("%H:%M:%S"),
+            }
+            for r in recent_records
+        ]
         
         total_mines_sessions = MinesGameSession.objects.count()
 
@@ -386,5 +406,7 @@ class AdminDashboardStatsView(APIView):
             "matches_lost": matches_lost,
             "total_bet_volume": str(total_bet_volume),
             "total_payout_volume": str(total_payout_volume),
+            "house_profit": str(house_profit),
+            "recent_activity": recent_activity,
             "total_mines_sessions": total_mines_sessions,
         })
