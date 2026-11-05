@@ -15,7 +15,6 @@ services:
       - key: ALLOWED_HOSTS
         value: "*"
       - key: DATABASE_URL
-        sync: false
+        value: "postgresql://postgres.zcslpyqbusbdsggrdtma:Supabase%40123@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres"
       - key: ADMIN_WHATSAPP_NUMBER
-        value: "+919876543210"
-
+        value: "+917780383832"

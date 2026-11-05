@@ -18,13 +18,10 @@ for env_candidate in [BASE_DIR / ".env", BASE_DIR.parent / ".env"]:
         break
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "dev-only-winplay-key-change-before-deployment",
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or os.environ.get("SECRET_KEY") or "dev-only-winplay-key-change-before-deployment"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() == "true"
+DEBUG = (os.environ.get("DJANGO_DEBUG") or os.environ.get("DEBUG") or "True").lower() == "true"
 
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "*").split(",") if h.strip()]
 
