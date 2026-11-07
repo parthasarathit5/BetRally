@@ -10,6 +10,7 @@ import 'screens/admin_deposits_screen.dart';
 import 'screens/admin_games_screen.dart';
 import 'screens/admin_matches_screen.dart';
 import 'screens/admin_withdrawals_screen.dart';
+import 'screens/admin_providers_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 void main() => runApp(const WinPlayApp());
@@ -30,7 +31,7 @@ class WinPlayApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'WinPlay',
+      title: 'Nexlyn',
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
@@ -121,7 +122,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 25),
               const Text(
-                'WINPLAY',
+                'NEXLYN',
                 style: TextStyle(
                   fontSize: 38,
                   fontWeight: FontWeight.w900,
@@ -391,7 +392,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Wrap(
                       alignment: WrapAlignment.center,
                       children: [
-                        const Text("New to WinPlay? "),
+                        const Text("New to Nexlyn? "),
                         GestureDetector(
                           onTap: () => Navigator.push(
                             context,
@@ -519,7 +520,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (!mounted) return;
 
       if (result['account_found'] == false) {
-        showMessage('No WinPlay account found with this email. Please check the address.', isError: true);
+        showMessage('No Nexlyn account found with this email. Please check the address.', isError: true);
         return;
       }
 
@@ -604,7 +605,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final descriptions = [
       'Enter your registered email address. We will send a 6-digit verification code to your inbox.',
       'Enter the 6-digit code sent to ${email.text.trim()}. Check your Inbox and Spam folder.',
-      'Choose a new strong password for your WinPlay account.',
+      'Choose a new strong password for your Nexlyn account.',
     ];
 
     return Scaffold(
@@ -801,7 +802,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Create your WinPlay account and get ₹100 Welcome Bonus!',
+                  'Create your Nexlyn account and get 1,000 Welcome Credits!',
                   style: TextStyle(color: Colors.white60),
                 ),
                 const SizedBox(height: 30),
@@ -1046,7 +1047,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'WINPLAY',
+          'NEXLYN',
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 3),
         ),
         actions: [
@@ -1094,7 +1095,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'WELCOME TO WINPLAY 👋',
+                  'WELCOME TO NEXLYN 👋',
                   style: TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 12),
@@ -1342,7 +1343,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('WinPlay Admin Portal')),
+      appBar: AppBar(title: const Text('Nexlyn Admin Portal')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
@@ -1452,7 +1453,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WINPLAY ADMIN'),
+        title: const Text('NEXLYN ADMIN'),
         actions: [
           IconButton(
             tooltip: 'Refresh Stats',
@@ -1498,6 +1499,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(height: 20),
               _buildStatsGrid(),
               const SizedBox(height: 20),
+              _AdminFeatureTile(
+                icon: Icons.hub_outlined,
+                title: 'Game Provider Management',
+                subtitle: 'Manage B2B API integrations, credentials, catalogs & health',
+                badgeText: '8 PROVIDERS',
+                onTap: () => Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => const AdminProvidersScreen(),
+                )),
+              ),
               _AdminFeatureTile(
                 icon: Icons.people_alt_outlined,
                 title: 'User management',
@@ -1552,7 +1562,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'WinPlay Administrator Management Dashboard',
+                'Nexlyn Administrator Management Dashboard',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white38, fontSize: 12),
               ),
