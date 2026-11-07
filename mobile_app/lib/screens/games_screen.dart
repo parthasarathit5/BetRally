@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../services/provider_games_service.dart';
 import '../widgets/provider_game_launcher.dart';
@@ -12,6 +13,7 @@ const pink = Color(0xFFFF4FA3);
 const teal = Color(0xFF21D6B5);
 const blue = Color(0xFF398BFF);
 const gold = Color(0xFFFFC857);
+const green = Color(0xFF25D366);
 
 class GamesScreen extends StatefulWidget {
   final VoidCallback? onWalletChanged;
@@ -24,22 +26,24 @@ class GamesScreen extends StatefulWidget {
 class _GamesScreenState extends State<GamesScreen> {
   String selectedCategory = 'all';
   String searchQuery = '';
-  double userCredits = 1000.0;
+  double userBalance = 0.0;
   bool isLoading = true;
+  String adminWhatsApp = '+917780383832';
 
   @override
   void initState() {
     super.initState();
-    _loadUserCredits();
+    _loadUserBalance();
   }
 
-  Future<void> _loadUserCredits() async {
+  Future<void> _loadUserBalance() async {
     setState(() => isLoading = true);
     try {
       final wallet = await ApiService.getWallet();
       if (!mounted) return;
       setState(() {
-        userCredits = double.tryParse(wallet['balance']?.toString() ?? '1000') ?? 1000.0;
+        userBalance = double.tryParse(wallet['balance']?.toString() ?? '0') ?? 0.0;
+        adminWhatsApp = wallet['admin_whatsapp']?.toString() ?? adminWhatsApp;
         isLoading = false;
       });
     } catch (_) {
@@ -71,6 +75,7 @@ class _GamesScreenState extends State<GamesScreen> {
       case 'sports_baseball': return Icons.sports_baseball;
       case 'sports_soccer': return Icons.sports_soccer;
       case 'sports_tennis': return Icons.sports_tennis;
+      case 'sports_cricket': return Icons.sports_cricket;
       case 'track_changes': return Icons.track_changes;
       case 'flight_takeoff': return Icons.flight_takeoff;
       case 'rocket_launch': return Icons.rocket_launch;
@@ -84,8 +89,6 @@ class _GamesScreenState extends State<GamesScreen> {
       case 'view_carousel': return Icons.view_carousel;
       case 'view_agenda': return Icons.view_agenda;
       case 'circle_outlined': return Icons.circle_outlined;
-      case 'filter_2': return Icons.filter_2;
-      case 'filter_1': return Icons.filter_1;
       default: return Icons.sports_esports;
     }
   }
@@ -106,38 +109,199 @@ class _GamesScreenState extends State<GamesScreen> {
     }
   }
 
-  void _onGameSelected(ProviderGame game) {
-    // If it's the preserved chess game, open the chess engine
-    if (game.id == 'nexlyn-chess-master') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChessGameScreen(
-            userBalance: userCredits,
-            entryFee: 0.0,
-            onGameFinished: () {
-              _loadUserCredits();
-              widget.onWalletChanged?.call();
+  void _showDepositModal() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Row(
+          children: [
+            Icon(Icons.account_balance_wallet, color: gold, size: 28),
+            SizedBox(width: 10),
+            Text('Low Wallet Balance', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Your Current Balance: ₹${userBalance.toStringAsFixed(2)}', style: const TextStyle(color: pink, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            const Text(
+              'To play online games and win real cash into your wallet, contact Admin on WhatsApp to deposit funds.',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: green.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: green.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.chat, color: green, size: 20),
+                  const SizedBox(width: 8),
+                  Text('Admin WhatsApp: $adminWhatsApp', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: green, foregroundColor: Colors.black),
+            icon: const Icon(Icons.chat, color: Colors.black, size: 18),
+            label: const Text('Message Admin on WhatsApp', style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final msg = 'Hello Admin, I want to add cash to my Nexlyn wallet to play games. Please credit my wallet.';
+              final url = 'https://wa.me/${adminWhatsApp.replaceAll('+', '').replaceAll(' ', '')}?text=${Uri.encodeComponent(msg)}';
+              await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
             },
           ),
-        ),
-      );
+        ],
+      ),
+    );
+  }
+
+  void _onGameSelected(ProviderGame game) {
+    final entryFee = game.entryFee;
+
+    // Check balance
+    if (userBalance < entryFee) {
+      _showDepositModal();
       return;
     }
 
-    // Launch provider engine
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ProviderGameLauncherScreen(
-          game: game,
-          userCredits: userCredits,
-          onSessionCompleted: () {
-            _loadUserCredits();
-            widget.onWalletChanged?.call();
-          },
-        ),
+    // Show quick confirmation
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [purple, pink]),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(_getIconData(game.iconName), color: Colors.white, size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(game.title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('${game.provider} • RTP: ${game.rtp}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Column(
+                      children: [
+                        const Text('Entry Fee', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        const SizedBox(height: 4),
+                        Text('₹${entryFee.toStringAsFixed(0)}', style: const TextStyle(color: pink, fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    Container(height: 35, width: 1, color: Colors.white24),
+                    Column(
+                      children: [
+                        const Text('Potential Win', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        const SizedBox(height: 4),
+                        Text('₹${(entryFee * 1.9).toStringAsFixed(0)}', style: const TextStyle(color: green, fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                '⚡ When you win, your prize money is automatically credited to your wallet in database!',
+                style: TextStyle(color: teal, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: green,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  icon: const Icon(Icons.play_arrow, color: Colors.black),
+                  label: const Text('CONFIRM & PLAY NOW', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    if (game.id == 'nexlyn-chess-master') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChessGameScreen(
+                            userBalance: userBalance,
+                            entryFee: entryFee,
+                            onGameFinished: () {
+                              _loadUserBalance();
+                              widget.onWalletChanged?.call();
+                            },
+                          ),
+                        ),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProviderGameLauncherScreen(
+                            game: game,
+                            userBalance: userBalance,
+                            entryFee: entryFee,
+                            onSessionCompleted: () {
+                              _loadUserBalance();
+                              widget.onWalletChanged?.call();
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -158,7 +322,7 @@ class _GamesScreenState extends State<GamesScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Banner & Credits display
+            // Top App Banner & Balance
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
               child: Row(
@@ -167,7 +331,7 @@ class _GamesScreenState extends State<GamesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'NEXLYN GAMING LOBBY',
+                        'NEXLYN LIVE LOBBY',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -178,14 +342,10 @@ class _GamesScreenState extends State<GamesScreen> {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(color: teal, shape: BoxShape.circle),
-                          ),
+                          Container(width: 6, height: 6, decoration: const BoxDecoration(color: green, shape: BoxShape.circle)),
                           const SizedBox(width: 6),
                           const Text(
-                            'Third-Party Provider Network • 10 Categories',
+                            'Real-Time Games • Auto Wallet Credit On Win',
                             style: TextStyle(color: Colors.white60, fontSize: 11),
                           ),
                         ],
@@ -193,23 +353,31 @@ class _GamesScreenState extends State<GamesScreen> {
                     ],
                   ),
                   const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [purple.withValues(alpha: 0.3), pink.withValues(alpha: 0.3)]),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: purple.withValues(alpha: 0.5)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.stars, color: gold, size: 16),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${userCredits.toInt()} XP',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ],
+                  InkWell(
+                    onTap: _showDepositModal,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [purple, teal]),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: purple.withValues(alpha: 0.3), blurRadius: 10),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.account_balance_wallet, color: Colors.white, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            '₹${userBalance.toStringAsFixed(2)}',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.add_circle, color: gold, size: 14),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -222,7 +390,7 @@ class _GamesScreenState extends State<GamesScreen> {
               child: TextField(
                 style: const TextStyle(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: 'Search games, providers (Pragmatic, Famobi, Spribe)...',
+                  hintText: 'Search 30+ games (Cricket, Rummy, 8-Ball, Roulette)...',
                   hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
                   prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
                   filled: true,
@@ -255,9 +423,7 @@ class _GamesScreenState extends State<GamesScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        gradient: isSelected
-                            ? const LinearGradient(colors: [purple, pink])
-                            : null,
+                        gradient: isSelected ? const LinearGradient(colors: [purple, pink]) : null,
                         color: isSelected ? null : surface,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
@@ -324,9 +490,7 @@ class _GamesScreenState extends State<GamesScreen> {
                                       color: surface,
                                       borderRadius: BorderRadius.circular(18),
                                       border: Border.all(
-                                        color: game.isOfficiallyAuthorized
-                                            ? teal.withValues(alpha: 0.4)
-                                            : Colors.white10,
+                                        color: teal.withValues(alpha: 0.4),
                                       ),
                                       boxShadow: [
                                         BoxShadow(
@@ -341,7 +505,7 @@ class _GamesScreenState extends State<GamesScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          // Top Visual & Provider Badge
+                                          // Top Visual
                                           Expanded(
                                             flex: 3,
                                             child: Container(
@@ -389,19 +553,14 @@ class _GamesScreenState extends State<GamesScreen> {
                                                     child: Container(
                                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                       decoration: BoxDecoration(
-                                                        color: game.isOfficiallyAuthorized
-                                                            ? teal.withValues(alpha: 0.2)
-                                                            : gold.withValues(alpha: 0.2),
+                                                        color: green.withValues(alpha: 0.2),
                                                         borderRadius: BorderRadius.circular(6),
-                                                        border: Border.all(
-                                                          color: game.isOfficiallyAuthorized ? teal : gold,
-                                                          width: 0.8,
-                                                        ),
+                                                        border: Border.all(color: green, width: 0.8),
                                                       ),
-                                                      child: Text(
-                                                        game.isOfficiallyAuthorized ? 'PLAYABLE' : 'SHOWCASE',
+                                                      child: const Text(
+                                                        'PLAY ONLINE',
                                                         style: TextStyle(
-                                                          color: game.isOfficiallyAuthorized ? teal : gold,
+                                                          color: green,
                                                           fontSize: 8,
                                                           fontWeight: FontWeight.bold,
                                                         ),
@@ -436,10 +595,11 @@ class _GamesScreenState extends State<GamesScreen> {
                                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                     children: [
                                                       Text(
-                                                        'RTP: ${game.rtp}',
+                                                        'Fee: ₹${game.entryFee.toInt()}',
                                                         style: const TextStyle(
-                                                          color: Colors.white54,
-                                                          fontSize: 10,
+                                                          color: gold,
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 11,
                                                         ),
                                                       ),
                                                       Container(
