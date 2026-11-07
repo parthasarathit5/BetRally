@@ -178,7 +178,7 @@ class _CricketGameScreenState extends State<CricketGameScreen> {
     setState(() => isGameOver = true);
 
     final isWin = outcome == 'win';
-    final payout = widget.entryFee * 2.0;
+    final payout = GameResultDialog.calculatePayout(widget.entryFee);
 
     GameResultDialog.show(
       context: context,

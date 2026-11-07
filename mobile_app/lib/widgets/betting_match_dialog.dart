@@ -64,6 +64,18 @@ class _BettingMatchDialogState extends State<BettingMatchDialog> {
 
   final List<double> betPresets = [10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0];
 
+  static double calculatePayout(double bet) {
+    if (bet >= 1000) return 1800.0;
+    if (bet >= 500) return 950.0;
+    if (bet >= 250) return 475.0;
+    if (bet >= 100) return 200.0;
+    if (bet >= 50) return 100.0;
+    if (bet >= 25) return 50.0;
+    if (bet >= 20) return 40.0;
+    if (bet >= 10) return 20.0;
+    return bet * 2.0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -115,7 +127,7 @@ class _BettingMatchDialogState extends State<BettingMatchDialog> {
     final gameName = widget.game['name']?.toString() ?? 'Game';
     final hasEnoughBalance = widget.userBalance >= selectedBet;
     final totalPot = selectedBet * 2;
-    final winPayout = (selectedBet * 2.0).toStringAsFixed(0);
+    final winPayout = calculatePayout(selectedBet).toStringAsFixed(0);
 
     return Dialog(
       backgroundColor: Colors.transparent,

@@ -320,7 +320,7 @@ class _FruitBladeNinjaScreenState extends State<FruitBladeNinjaScreen> with Sing
     opponentAiTimer?.cancel();
 
     final isWin = playerScore > opponentScore;
-    final payout = widget.betAmount * 2.0;
+    final payout = GameResultDialog.calculatePayout(widget.betAmount);
 
     setState(() {
       isGameOver = true;

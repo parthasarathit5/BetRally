@@ -19,6 +19,18 @@ class GameResultDialog extends StatefulWidget {
   final Map<String, dynamic> scoreDetails;
   final VoidCallback? onFinished;
 
+  static double calculatePayout(double bet) {
+    if (bet >= 1000) return 1800.0;
+    if (bet >= 500) return 950.0;
+    if (bet >= 250) return 475.0;
+    if (bet >= 100) return 200.0;
+    if (bet >= 50) return 100.0;
+    if (bet >= 25) return 50.0;
+    if (bet >= 20) return 40.0;
+    if (bet >= 10) return 20.0;
+    return bet * 2.0;
+  }
+
   const GameResultDialog({
     super.key,
     required this.gameName,
@@ -240,7 +252,7 @@ class _GameResultDialogState extends State<GameResultDialog> {
                     if (isWin) ...[
                       const SizedBox(height: 2),
                       Text(
-                        'Entry: ₹${widget.betAmount.toStringAsFixed(0)} ➔ Payout: 2x (₹${widget.payoutAmount.toStringAsFixed(0)})',
+                        'Entry: ₹${widget.betAmount.toStringAsFixed(0)} ➔ Pot Won: ₹${widget.payoutAmount.toStringAsFixed(0)}',
                         style: const TextStyle(fontSize: 11, color: Colors.white70),
                       ),
                     ],
