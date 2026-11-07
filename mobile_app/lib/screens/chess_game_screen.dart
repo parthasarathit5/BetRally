@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../services/api_service.dart';
+import '../widgets/game_result_dialog.dart';
 
 const bg = Color(0xFF090B1A);
 const surface = Color(0xFF171A31);
@@ -318,128 +317,25 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       isGameOver = true;
       result = outcome;
       gameStatus = reason;
-      isSubmittingResult = true;
     });
 
-    final payout = outcome == 'win' ? (widget.entryFee * 1.9) : 0.0;
-
-    try {
-      final res = await ApiService.recordMatch(
-        gameName: 'Blitz Chess',
-        gameSlug: 'chess',
-        result: outcome,
-        betAmount: widget.entryFee,
-        payoutAmount: payout,
-        scoreDetails: {
-          'reason': reason,
-          'player_time_left': playerTimeSeconds,
-          'opponent_time_left': opponentTimeSeconds,
-        },
-      );
-      if (!mounted) return;
-      setState(() {
-        matchRef = res['reference_id']?.toString();
-        whatsappUrl = res['whatsapp_admin_url']?.toString();
-        isSubmittingResult = false;
-      });
-      widget.onGameFinished?.call();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => isSubmittingResult = false);
-    }
-
-    _showResultDialog(outcome, reason, payout);
-  }
-
-  void _showResultDialog(String outcome, String reason, double payout) {
     final isWin = outcome == 'win';
-    showDialog(
+    final payout = widget.entryFee * 2.0;
+
+    GameResultDialog.show(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(isWin ? Icons.emoji_events : Icons.sentiment_dissatisfied, color: isWin ? gold : pink, size: 28),
-            const SizedBox(width: 10),
-            Text(isWin ? 'VICTORY!' : 'DEFEAT', style: TextStyle(color: isWin ? gold : pink, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(reason, style: const TextStyle(fontSize: 14, color: Colors.white70)),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isWin ? teal.withValues(alpha: 0.15) : pink.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(isWin ? 'Prize Payout:' : 'Match Fee:', style: const TextStyle(color: Colors.white70)),
-                  Text(
-                    isWin ? '+₹${payout.toStringAsFixed(2)}' : '-₹${widget.entryFee.toStringAsFixed(2)}',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isWin ? teal : pink),
-                  ),
-                ],
-              ),
-            ),
-            if (matchRef != null) ...[
-              const SizedBox(height: 10),
-              Text('Match Ref: $matchRef', style: const TextStyle(color: Colors.white38, fontSize: 11)),
-            ],
-          ],
-        ),
-        actions: [
-          if (isWin)
-            FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: green,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              icon: const Icon(Icons.card_giftcard, color: Colors.black),
-              label: Text(
-                'COLLECT WINNINGS (₹${payout.toStringAsFixed(2)})',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              onPressed: () async {
-                final nav = Navigator.of(context);
-                final dialogNav = Navigator.of(ctx);
-                final wa = whatsappUrl ?? 'https://wa.me/917780383832?text=${Uri.encodeComponent("Hello Admin, I WON ₹${payout.toStringAsFixed(2)} in Blitz Chess on BetRally! Match Ref: $matchRef. Please verify my wallet credit.")}';
-                final uri = Uri.parse(wa);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-                dialogNav.pop();
-                nav.pop();
-              },
-            )
-          else if (whatsappUrl != null)
-            TextButton.icon(
-              icon: const Icon(Icons.chat, color: green, size: 18),
-              label: const Text('REPORT TO ADMIN', style: TextStyle(color: green, fontWeight: FontWeight.bold)),
-              onPressed: () async {
-                final uri = Uri.parse(whatsappUrl!);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
-            ),
-          OutlinedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context);
-            },
-            child: const Text('BACK TO GAMES'),
-          ),
-        ],
-      ),
+      gameName: 'Blitz Chess Pro',
+      gameSlug: 'chess',
+      won: isWin,
+      betAmount: widget.entryFee,
+      payoutAmount: payout,
+      reason: reason,
+      scoreDetails: {
+        'reason': reason,
+        'player_time_left': playerTimeSeconds,
+        'opponent_time_left': opponentTimeSeconds,
+      },
+      onFinished: widget.onGameFinished,
     );
   }
 

@@ -346,7 +346,7 @@ class RecordMatchView(APIView):
                     net_change = payout_amount
                     final_payout = payout_amount
                 else:
-                    final_payout = (bet_amount * Decimal("1.9")).quantize(Decimal("0.01"))
+                    final_payout = (bet_amount * Decimal("2.0")).quantize(Decimal("0.01"))
                     net_change = final_payout - bet_amount
 
                 # Automatically add to user wallet

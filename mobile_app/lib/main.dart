@@ -10,7 +10,6 @@ import 'screens/admin_deposits_screen.dart';
 import 'screens/admin_games_screen.dart';
 import 'screens/admin_matches_screen.dart';
 import 'screens/admin_withdrawals_screen.dart';
-import 'screens/admin_providers_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 void main() => runApp(const WinPlayApp());
@@ -1500,26 +1499,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               _buildStatsGrid(),
               const SizedBox(height: 20),
               _AdminFeatureTile(
-                icon: Icons.hub_outlined,
-                title: 'Game Provider Management',
-                subtitle: 'Manage B2B API integrations, credentials, catalogs & health',
-                badgeText: '8 PROVIDERS',
-                onTap: () => Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => const AdminProvidersScreen(),
-                )),
-              ),
-              _AdminFeatureTile(
                 icon: Icons.people_alt_outlined,
-                title: 'User management',
-                subtitle: 'View, search, inspect balances & adjust credits',
+                title: 'User Management (All Access & Wallets)',
+                subtitle: 'Search players, view balances, edit status, & direct credit/debit wallet',
+                badgeText: 'FULL ACCESS',
                 onTap: () => Navigator.push(context, MaterialPageRoute(
                   builder: (_) => const AdminUsersScreen(),
                 )).then((_) => loadDashboardStats()),
               ),
               _AdminFeatureTile(
+                icon: Icons.history_edu,
+                title: 'Player Match Activity & Records',
+                subtitle: 'Live feed of all competitive matches, wins, losses & scores in Supabase',
+                onTap: () => Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => const AdminMatchesScreen(),
+                )),
+              ),
+              _AdminFeatureTile(
                 icon: Icons.price_check,
                 title: 'Deposit Requests & Approvals',
-                subtitle: 'Verify WhatsApp deposits & credit player wallets',
+                subtitle: 'Verify WhatsApp deposits & credit player wallets directly',
                 badgeText: (stats != null && (stats!['pending_deposits'] as int? ?? 0) > 0)
                     ? '${stats!['pending_deposits']} PENDING'
                     : null,
@@ -1540,29 +1539,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               _AdminFeatureTile(
                 icon: Icons.sports_esports_outlined,
-                title: 'Game management',
-                subtitle: 'Create, edit, toggle active status & delete games',
+                title: 'Game Catalog & Entry Stakes',
+                subtitle: 'Toggle active status & configure betting stakes for all games',
                 onTap: () => Navigator.push(context, MaterialPageRoute(
                   builder: (_) => const AdminGamesScreen(),
                 )).then((_) => loadDashboardStats()),
               ),
-              _AdminFeatureTile(
-                icon: Icons.history_edu,
-                title: 'Player Match Activity & Records',
-                subtitle: 'Monitor live match results, wins, losses & scores in Supabase',
-                onTap: () => Navigator.push(context, MaterialPageRoute(
-                  builder: (_) => const AdminMatchesScreen(),
-                )),
-              ),
-              _AdminFeatureTile(
-                icon: Icons.analytics_outlined,
-                title: 'Reports & Platform Audit',
-                subtitle: 'Platform statistics, wallet balances & session logs',
-                onTap: () => _showAuditDialog(context),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               const Text(
-                'Nexlyn Administrator Management Dashboard',
+                'Nexlyn Admin Control Center • Supabase Database Connected',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white38, fontSize: 12),
               ),
@@ -1801,53 +1786,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  void _showAuditDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: surface,
-        title: const Row(
-          children: [
-            Icon(Icons.analytics, color: teal),
-            SizedBox(width: 10),
-            Text('Platform Summary'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _auditRow('Total Registered Players:', '${stats?['total_players'] ?? 'N/A'}'),
-            _auditRow('Active Players:', '${stats?['active_players'] ?? 'N/A'}'),
-            _auditRow('Total Games Catalogued:', '${stats?['total_games'] ?? 'N/A'}'),
-            _auditRow('Active Games:', '${stats?['active_games'] ?? 'N/A'}'),
-            _auditRow('Total Wallet Balances:', '₹${stats?['total_wallet_pool'] ?? '0.00'}'),
-            _auditRow('Approved Deposits:', '₹${stats?['total_deposits_approved'] ?? '0.00'}'),
-            _auditRow('Mines Arcade Sessions:', '${stats?['total_mines_sessions'] ?? '0'}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('CLOSE'),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _auditRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: teal, fontSize: 13)),
-        ],
-      ),
-    );
-  }
 }
 
 class _AdminFeatureTile extends StatelessWidget {

@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../services/api_service.dart';
+import '../widgets/game_result_dialog.dart';
 
 const bg = Color(0xFF090B1A);
 const surface = Color(0xFF171A31);
@@ -35,6 +34,9 @@ class _CricketGameScreenState extends State<CricketGameScreen> {
   int wickets = 0;
   final int targetScore = 20;
 
+  int matchSecondsRemaining = 60;
+  Timer? matchTimer;
+
   bool isBowling = false;
   String currentBallType = 'Yorker (145 km/h)';
   String ballOutcomeText = 'Tap a shot when bowler delivers!';
@@ -58,11 +60,27 @@ class _CricketGameScreenState extends State<CricketGameScreen> {
   void initState() {
     super.initState();
     startDeliveryCycle();
+    matchTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || isGameOver) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (matchSecondsRemaining > 1) {
+          matchSecondsRemaining--;
+        } else {
+          matchSecondsRemaining = 0;
+          timer.cancel();
+          finishMatch('loss', 'Time limit expired! Failed to chase target in time.');
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
     swingTimer?.cancel();
+    matchTimer?.cancel();
     super.dispose();
   }
 
@@ -156,101 +174,28 @@ class _CricketGameScreenState extends State<CricketGameScreen> {
 
   Future<void> finishMatch(String outcome, String reason) async {
     swingTimer?.cancel();
+    matchTimer?.cancel();
     setState(() => isGameOver = true);
 
     final isWin = outcome == 'win';
-    final payout = isWin ? (widget.entryFee * 1.85) : 0.0;
+    final payout = widget.entryFee * 2.0;
 
-    try {
-      final res = await ApiService.recordMatch(
-        gameName: 'Cricket Clash',
-        gameSlug: 'cricket',
-        result: outcome,
-        betAmount: widget.entryFee,
-        payoutAmount: payout,
-        scoreDetails: {
-          'score': '$score/$wickets',
-          'balls': ballsBowled,
-          'target': targetScore,
-          'over': overTimeline,
-        },
-      );
-      if (!mounted) return;
-      setState(() {
-        matchRef = res['reference_id']?.toString();
-        whatsappUrl = res['whatsapp_admin_url']?.toString();
-      });
-      widget.onGameFinished?.call();
-    } catch (_) {}
-
-    _showResultDialog(outcome, reason, payout);
-  }
-
-  void _showResultDialog(String outcome, String reason, double payout) {
-    final isWin = outcome == 'win';
-    showDialog(
+    GameResultDialog.show(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(isWin ? Icons.emoji_events : Icons.sentiment_dissatisfied, color: isWin ? gold : pink, size: 28),
-            const SizedBox(width: 10),
-            Text(isWin ? 'MATCH WON!' : 'MATCH LOST', style: TextStyle(color: isWin ? gold : pink, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(reason, style: const TextStyle(fontSize: 14, color: Colors.white70)),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isWin ? teal.withValues(alpha: 0.15) : pink.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(isWin ? 'Prize Payout:' : 'Match Fee:', style: const TextStyle(color: Colors.white70)),
-                  Text(
-                    isWin ? '+₹${payout.toStringAsFixed(2)}' : '-₹${widget.entryFee.toStringAsFixed(2)}',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isWin ? teal : pink),
-                  ),
-                ],
-              ),
-            ),
-            if (matchRef != null) ...[
-              const SizedBox(height: 10),
-              Text('Match Ref: $matchRef', style: const TextStyle(color: Colors.white38, fontSize: 11)),
-            ],
-          ],
-        ),
-        actions: [
-          if (whatsappUrl != null)
-            TextButton.icon(
-              icon: const Icon(Icons.chat, color: green, size: 18),
-              label: const Text('REPORT TO ADMIN', style: TextStyle(color: green, fontWeight: FontWeight.bold)),
-              onPressed: () async {
-                final uri = Uri.parse(whatsappUrl!);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
-            ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context);
-            },
-            child: const Text('BACK TO GAMES'),
-          ),
-        ],
-      ),
+      gameName: 'Cricket Clash Champions',
+      gameSlug: 'cricket',
+      won: isWin,
+      betAmount: widget.entryFee,
+      payoutAmount: payout,
+      reason: reason,
+      scoreDetails: {
+        'score': '$score/$wickets',
+        'balls': ballsBowled,
+        'target': targetScore,
+        'over': overTimeline,
+        'seconds_left': matchSecondsRemaining,
+      },
+      onFinished: widget.onGameFinished,
     );
   }
 
@@ -264,6 +209,29 @@ class _CricketGameScreenState extends State<CricketGameScreen> {
         title: const Text('Cricket Clash T20'),
         backgroundColor: bg,
         actions: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: matchSecondsRemaining < 15 ? Colors.red.withValues(alpha: 0.3) : teal.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: matchSecondsRemaining < 15 ? Colors.redAccent : teal),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.timer, color: matchSecondsRemaining < 15 ? Colors.redAccent : teal, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  '00:${matchSecondsRemaining.toString().padLeft(2, '0')}',
+                  style: TextStyle(
+                    color: matchSecondsRemaining < 15 ? Colors.redAccent : teal,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
           Container(
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

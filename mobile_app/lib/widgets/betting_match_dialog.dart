@@ -115,7 +115,7 @@ class _BettingMatchDialogState extends State<BettingMatchDialog> {
     final gameName = widget.game['name']?.toString() ?? 'Game';
     final hasEnoughBalance = widget.userBalance >= selectedBet;
     final totalPot = selectedBet * 2;
-    final winPayout = (selectedBet * 1.9).toStringAsFixed(2);
+    final winPayout = (selectedBet * 2.0).toStringAsFixed(0);
 
     return Dialog(
       backgroundColor: Colors.transparent,

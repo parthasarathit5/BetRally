@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../widgets/betting_match_dialog.dart';
+import '../widgets/game_result_dialog.dart';
 
 const bg = Color(0xFF090B1A);
 const surface = Color(0xFF171A31);
@@ -318,37 +319,32 @@ class _FruitBladeNinjaScreenState extends State<FruitBladeNinjaScreen> with Sing
     fruitSpawnerTimer?.cancel();
     opponentAiTimer?.cancel();
 
-    final isWin = playerScore >= opponentScore;
-    final outcome = isWin ? 'win' : 'loss';
-    final payout = isWin ? (widget.betAmount * 1.9) : 0.0;
+    final isWin = playerScore > opponentScore;
+    final payout = widget.betAmount * 2.0;
 
     setState(() {
       isGameOver = true;
-      matchOutcome = outcome;
+      matchOutcome = isWin ? 'win' : 'loss';
       payoutWon = payout;
     });
 
-    try {
-      final res = await ApiService.recordMatch(
-        gameName: 'Fruit Blade Ninja',
-        gameSlug: 'fruit-cutter',
-        betAmount: widget.betAmount,
-        payoutAmount: payout,
-        result: outcome,
-        scoreDetails: {
-          'player_score': playerScore,
-          'opponent_score': opponentScore,
-          'opponent_name': widget.opponent.name,
-          'opponent_city': widget.opponent.city,
-        },
-      );
-      if (mounted) {
-        setState(() {
-          matchRef = res['record']?['reference_id'];
-          adminWhatsApp = res['admin_whatsapp'];
-        });
-      }
-    } catch (_) {}
+    GameResultDialog.show(
+      context: context,
+      gameName: 'Fruit Blade Ninja',
+      gameSlug: 'fruit-cutter',
+      won: isWin,
+      betAmount: widget.betAmount,
+      payoutAmount: payout,
+      reason: isWin
+          ? 'You outscored ${widget.opponent.name} ($playerScore vs $opponentScore) in 60 seconds!'
+          : '${widget.opponent.name} outscored you ($opponentScore vs $playerScore).',
+      scoreDetails: {
+        'player_score': playerScore,
+        'opponent_score': opponentScore,
+        'opponent_name': widget.opponent.name,
+      },
+      onFinished: widget.onGameFinished,
+    );
   }
 
   Future<void> handleMidGameForfeit() async {
