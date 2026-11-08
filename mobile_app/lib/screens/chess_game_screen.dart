@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../widgets/game_result_dialog.dart';
 
 const bg = Color(0xFF090B1A);
@@ -339,6 +340,60 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     );
   }
 
+  Future<void> _handleForfeitQuit() async {
+    if (isGameOver) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final quit = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: pink, size: 28),
+            SizedBox(width: 8),
+            Text('FORFEIT MATCH?', style: TextStyle(color: pink, fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          'If you exit now, you will surrender this match and ₹${widget.entryFee.toStringAsFixed(0)} will be deducted from your wallet!',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('RESUME PLAYING', style: TextStyle(color: teal, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('FORFEIT & QUIT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (quit == true && mounted) {
+      gameTimer?.cancel();
+      try {
+        await ApiService.recordMatch(
+          gameName: 'Blitz Chess Pro',
+          gameSlug: 'chess',
+          result: 'loss',
+          betAmount: widget.entryFee,
+          payoutAmount: 0.0,
+          scoreDetails: {'reason': 'Player exited match / surrendered'},
+        );
+      } catch (_) {}
+      widget.onGameFinished?.call();
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
   String formatTime(int totalSeconds) {
     final m = totalSeconds ~/ 60;
     final s = totalSeconds % 60;
@@ -347,10 +402,19 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Blitz Chess (1v1)'),
-        backgroundColor: bg,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleForfeitQuit();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _handleForfeitQuit,
+          ),
+          title: const Text('Blitz Chess (1v1)'),
+          backgroundColor: bg,
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
@@ -564,6 +628,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

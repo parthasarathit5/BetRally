@@ -61,7 +61,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'chess',
       'category': 'board',
       'icon_name': 'circle_outlined',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': '3-Min Blitz timer FIDE Chess match against opponent AI. Checkmate to win!',
     },
     {
@@ -69,7 +69,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'cricket',
       'category': 'sports',
       'icon_name': 'sports_cricket',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Chase down the target score against opponent bowling before 6 balls run out.',
     },
     {
@@ -77,7 +77,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'fruit-cutter',
       'category': 'action',
       'icon_name': 'local_florist',
-      'entry_fee': 25.0,
+      'entry_fee': 100.0,
       'description': 'Slice flying fruits, dodge bombs, beat opponent score before 60s timer expires.',
     },
     {
@@ -85,7 +85,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'rummy',
       'category': 'cards',
       'icon_name': 'style',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Real-time 13 card meld and show against opponent. Declare first to win.',
     },
     {
@@ -93,7 +93,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'carrom',
       'category': 'board',
       'icon_name': 'sports_baseball',
-      'entry_fee': 40.0,
+      'entry_fee': 100.0,
       'description': 'Pocket white coins and cover the queen before opponent wins the board.',
     },
     {
@@ -101,7 +101,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'teen-patti',
       'category': 'cards',
       'icon_name': 'style',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Classic 3-card Indian poker showdown against opponent.',
     },
     {
@@ -109,7 +109,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'dragon-tiger',
       'category': 'casual',
       'icon_name': 'shield',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Fast-paced two-card battle. High card wins the pot.',
     },
     {
@@ -117,7 +117,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'andar-bahar',
       'category': 'cards',
       'icon_name': 'casino',
-      'entry_fee': 40.0,
+      'entry_fee': 100.0,
       'description': 'Bet on Andar or Bahar for matching card spot wins.',
     },
     {
@@ -125,7 +125,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'aviator',
       'category': 'casual',
       'icon_name': 'flight_takeoff',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Multiplier curve crash. Cash out before plane flies away!',
     },
     {
@@ -133,7 +133,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'mines',
       'category': 'casual',
       'icon_name': 'grid_on',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Uncover gems in 5x5 minefield. Multipliers grow with each gem.',
     },
     {
@@ -141,7 +141,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'football',
       'category': 'sports',
       'icon_name': 'sports_soccer',
-      'entry_fee': 30.0,
+      'entry_fee': 100.0,
       'description': 'Interactive penalty kicks against goalkeeper to score winning goals.',
     },
     {
@@ -149,7 +149,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'moto-rush',
       'category': 'action',
       'icon_name': 'rocket_launch',
-      'entry_fee': 40.0,
+      'entry_fee': 100.0,
       'description': 'Dodge traffic at 200 km/h and reach 10 km finish line to cash out.',
     },
     {
@@ -157,7 +157,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'galaxy-strike',
       'category': 'action',
       'icon_name': 'rocket_launch',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Destroy enemy alien fleet waves before ship shields deplete.',
     },
     {
@@ -165,7 +165,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'zombie-survival',
       'category': 'action',
       'icon_name': 'whatshot',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Survive intense zombie waves to claim the jackpot bounty.',
     },
     {
@@ -173,7 +173,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'tower-defense',
       'category': 'action',
       'icon_name': 'lock',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Tactical defense strategy to defeat incoming invader waves.',
     },
     {
@@ -181,7 +181,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'speed-ludo',
       'category': 'board',
       'icon_name': 'casino',
-      'entry_fee': 30.0,
+      'entry_fee': 100.0,
       'description': 'Fast-paced Ludo pawn race against opponent with timer.',
     },
     {
@@ -189,7 +189,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'blackjack',
       'category': 'cards',
       'icon_name': 'style',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Beat the dealer hand to 21 without busting.',
     },
     {
@@ -197,7 +197,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'roulette',
       'category': 'casual',
       'icon_name': 'album',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Spin European 3D roulette wheel with inside and outside bets.',
     },
     {
@@ -205,7 +205,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'pool-clash',
       'category': 'sports',
       'icon_name': 'sports_baseball',
-      'entry_fee': 50.0,
+      'entry_fee': 100.0,
       'description': 'Pocket solids or stripes and sink the 8-ball before opponent.',
     },
     {
@@ -213,7 +213,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'archery',
       'category': 'sports',
       'icon_name': 'track_changes',
-      'entry_fee': 30.0,
+      'entry_fee': 100.0,
       'description': 'Compete in bullseye archery accuracy against opponent score.',
     },
     {
@@ -221,7 +221,7 @@ class _GamesScreenState extends State<GamesScreen> {
       'slug': 'knife-hit',
       'category': 'action',
       'icon_name': 'colorize',
-      'entry_fee': 25.0,
+      'entry_fee': 100.0,
       'description': 'Pin blades onto spinning timber without hitting other knives.',
     },
   ];
@@ -295,7 +295,8 @@ class _GamesScreenState extends State<GamesScreen> {
   }
 
   double getEntryFee(dynamic game) {
-    return double.tryParse(game['entry_fee']?.toString() ?? '50') ?? 50.0;
+    final fee = double.tryParse(game['entry_fee']?.toString() ?? '100') ?? 100.0;
+    return fee < 100.0 ? 100.0 : fee;
   }
 
   void openBettingDialog(Map<String, dynamic> game) {

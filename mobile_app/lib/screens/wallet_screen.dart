@@ -222,6 +222,16 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   void _showWithdrawDialog() {
+    if (balance < 500) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Withdrawals require at least ₹500 balance. Your balance: ₹${balance.toStringAsFixed(2)}. Play games to reach ₹500!'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     final amountCtrl = TextEditingController();
     final upiCtrl = TextEditingController();
     final nameCtrl = TextEditingController();
@@ -296,9 +306,15 @@ class _WalletScreenState extends State<WalletScreen> {
                             ? null
                             : () async {
                                 final amt = double.tryParse(amountCtrl.text.trim()) ?? 0.0;
+                                if (balance < 500) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('You must have at least ₹500 balance to withdraw.'), backgroundColor: Colors.red),
+                                  );
+                                  return;
+                                }
                                 if (amt < 500) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Minimum withdrawal is ₹500'), backgroundColor: Colors.red),
+                                    const SnackBar(content: Text('Minimum withdrawal amount is ₹500. Enter ₹500 or more.'), backgroundColor: Colors.red),
                                   );
                                   return;
                                 }

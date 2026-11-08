@@ -20,14 +20,12 @@ class GameResultDialog extends StatefulWidget {
   final VoidCallback? onFinished;
 
   static double calculatePayout(double bet) {
+    if (bet >= 5000) return 9000.0;
+    if (bet >= 2000) return 3600.0;
     if (bet >= 1000) return 1800.0;
     if (bet >= 500) return 950.0;
     if (bet >= 250) return 475.0;
     if (bet >= 100) return 200.0;
-    if (bet >= 50) return 100.0;
-    if (bet >= 25) return 50.0;
-    if (bet >= 20) return 40.0;
-    if (bet >= 10) return 20.0;
     return bet * 2.0;
   }
 

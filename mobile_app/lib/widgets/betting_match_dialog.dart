@@ -62,25 +62,24 @@ class _BettingMatchDialogState extends State<BettingMatchDialog> {
   int countdownSeconds = 3;
   Timer? countdownTimer;
 
-  final List<double> betPresets = [10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0];
+  final List<double> betPresets = [100.0, 250.0, 500.0, 1000.0, 2000.0, 5000.0];
 
   static double calculatePayout(double bet) {
+    if (bet >= 5000) return 9000.0;
+    if (bet >= 2000) return 3600.0;
     if (bet >= 1000) return 1800.0;
     if (bet >= 500) return 950.0;
     if (bet >= 250) return 475.0;
     if (bet >= 100) return 200.0;
-    if (bet >= 50) return 100.0;
-    if (bet >= 25) return 50.0;
-    if (bet >= 20) return 40.0;
-    if (bet >= 10) return 20.0;
     return bet * 2.0;
   }
 
   @override
   void initState() {
     super.initState();
-    final defaultFee = double.tryParse(widget.game['entry_fee']?.toString() ?? '50') ?? 50.0;
-    selectedBet = betPresets.contains(defaultFee) ? defaultFee : 50.0;
+    final rawFee = double.tryParse(widget.game['entry_fee']?.toString() ?? '100') ?? 100.0;
+    final defaultFee = rawFee < 100.0 ? 100.0 : rawFee;
+    selectedBet = betPresets.contains(defaultFee) ? defaultFee : 100.0;
   }
 
   @override

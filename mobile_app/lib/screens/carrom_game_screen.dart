@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
+import '../widgets/game_result_dialog.dart';
 
 const bg = Color(0xFF090B1A);
 const surface = Color(0xFF171A31);
@@ -246,109 +246,98 @@ class _CarromGameScreenState extends State<CarromGameScreen> {
     }
   }
 
-  Future<void> endGame(String outcome, String reason) async {
-    setState(() => isGameOver = true);
-    final isWin = outcome == 'win';
-    final payout = isWin ? (widget.entryFee * 1.85) : 0.0;
+  Future<void> _handleForfeitQuit() async {
+    if (isGameOver) {
+      Navigator.pop(context);
+      return;
+    }
 
-    try {
-      final res = await ApiService.recordMatch(
-        gameName: 'Carrom King',
-        gameSlug: 'carrom',
-        result: outcome,
-        betAmount: widget.entryFee,
-        payoutAmount: payout,
-        scoreDetails: {
-          'player_score': playerScore,
-          'opponent_score': opponentScore,
-          'target': targetScore,
-        },
-      );
-      if (!mounted) return;
-      setState(() {
-        matchRef = res['reference_id']?.toString();
-        whatsappUrl = res['whatsapp_admin_url']?.toString();
-      });
-      widget.onGameFinished?.call();
-    } catch (_) {}
-
-    _showResultDialog(outcome, reason, payout);
-  }
-
-  void _showResultDialog(String outcome, String reason, double payout) {
-    final isWin = outcome == 'win';
-    showDialog(
+    final quit = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
+        title: const Row(
           children: [
-            Icon(isWin ? Icons.emoji_events : Icons.sentiment_dissatisfied, color: isWin ? gold : pink, size: 28),
-            const SizedBox(width: 10),
-            Text(isWin ? 'CARROM CHAMPION!' : 'MATCH LOST', style: TextStyle(color: isWin ? gold : pink, fontWeight: FontWeight.bold)),
+            Icon(Icons.warning_amber_rounded, color: pink, size: 28),
+            SizedBox(width: 8),
+            Text('FORFEIT MATCH?', style: TextStyle(color: pink, fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(reason, style: const TextStyle(fontSize: 14, color: Colors.white70)),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isWin ? teal.withValues(alpha: 0.15) : pink.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(isWin ? 'Prize Payout:' : 'Match Fee:', style: const TextStyle(color: Colors.white70)),
-                  Text(
-                    isWin ? '+₹${payout.toStringAsFixed(2)}' : '-₹${widget.entryFee.toStringAsFixed(2)}',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isWin ? teal : pink),
-                  ),
-                ],
-              ),
-            ),
-            if (matchRef != null) ...[
-              const SizedBox(height: 10),
-              Text('Match Ref: $matchRef', style: const TextStyle(color: Colors.white38, fontSize: 11)),
-            ],
-          ],
+        content: Text(
+          'If you exit now, you will surrender this match and ₹${widget.entryFee.toStringAsFixed(0)} will be cut from your wallet!',
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
-          if (whatsappUrl != null)
-            TextButton.icon(
-              icon: const Icon(Icons.chat, color: green, size: 18),
-              label: const Text('REPORT TO ADMIN', style: TextStyle(color: green, fontWeight: FontWeight.bold)),
-              onPressed: () async {
-                final uri = Uri.parse(whatsappUrl!);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
-            ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context);
-            },
-            child: const Text('BACK TO GAMES'),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('RESUME PLAYING', style: TextStyle(color: teal, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('FORFEIT & QUIT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
+    );
+
+    if (quit == true && mounted) {
+      physicsTimer?.cancel();
+      try {
+        await ApiService.recordMatch(
+          gameName: 'Carrom Clash Pro',
+          gameSlug: 'carrom',
+          result: 'loss',
+          betAmount: widget.entryFee,
+          payoutAmount: 0.0,
+          scoreDetails: {'reason': 'Player exited match / surrendered'},
+        );
+      } catch (_) {}
+      widget.onGameFinished?.call();
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
+  Future<void> endGame(String outcome, String reason) async {
+    physicsTimer?.cancel();
+    setState(() => isGameOver = true);
+    final isWin = outcome == 'win';
+    final payout = GameResultDialog.calculatePayout(widget.entryFee);
+
+    GameResultDialog.show(
+      context: context,
+      gameName: 'Carrom Clash Pro',
+      gameSlug: 'carrom',
+      won: isWin,
+      betAmount: widget.entryFee,
+      payoutAmount: payout,
+      reason: reason,
+      scoreDetails: {
+        'player_score': playerScore,
+        'opponent_score': opponentScore,
+        'target': targetScore,
+      },
+      onFinished: widget.onGameFinished,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Carrom King (Board)'),
-        backgroundColor: bg,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleForfeitQuit();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _handleForfeitQuit,
+          ),
+          title: const Text('Carrom King (Board)'),
+          backgroundColor: bg,
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
@@ -563,8 +552,9 @@ class _CarromGameScreenState extends State<CarromGameScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _pocketCircle() {
     return Container(

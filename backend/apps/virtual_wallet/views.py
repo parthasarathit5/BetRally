@@ -141,6 +141,11 @@ class WalletWithdrawView(APIView):
             defaults={"balance": Decimal("0.00")},
         )
 
+        if wallet.balance < Decimal("500.00"):
+            return Response({
+                "error": f"You must have at least ₹500 in your wallet to withdraw. Current balance: ₹{wallet.balance:.2f}."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         if wallet.balance < amount:
             return Response({
                 "error": f"Insufficient wallet balance. You have ₹{wallet.balance:.2f} but requested ₹{amount:.2f}."
@@ -153,8 +158,14 @@ class WalletWithdrawView(APIView):
         # Atomically deduct from wallet and hold in pending withdrawal escrow
         with transaction.atomic():
             wallet = Wallet.objects.select_for_update().get(id=wallet.id)
+            if wallet.balance < Decimal("500.00"):
+                return Response({
+                    "error": f"You must have at least ₹500 in your wallet to withdraw. Current balance: ₹{wallet.balance:.2f}."
+                }, status=status.HTTP_400_BAD_REQUEST)
             if wallet.balance < amount:
-                return Response({"error": "Insufficient balance."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    "error": f"Insufficient wallet balance. You have ₹{wallet.balance:.2f} but requested ₹{amount:.2f}."
+                }, status=status.HTTP_400_BAD_REQUEST)
             wallet.balance -= amount
             wallet.save(update_fields=["balance", "updated_at"])
 

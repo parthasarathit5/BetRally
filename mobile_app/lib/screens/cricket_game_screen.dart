@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../widgets/game_result_dialog.dart';
 
 const bg = Color(0xFF090B1A);
@@ -199,15 +200,79 @@ class _CricketGameScreenState extends State<CricketGameScreen> {
     );
   }
 
+  Future<void> _handleForfeitQuit() async {
+    if (isGameOver) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final quit = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: pink, size: 28),
+            SizedBox(width: 8),
+            Text('FORFEIT MATCH?', style: TextStyle(color: pink, fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          'If you exit now, you will surrender this match and ₹${widget.entryFee.toStringAsFixed(0)} will be cut from your wallet!',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('RESUME PLAYING', style: TextStyle(color: teal, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('FORFEIT & QUIT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (quit == true && mounted) {
+      swingTimer?.cancel();
+      matchTimer?.cancel();
+      try {
+        await ApiService.recordMatch(
+          gameName: 'Cricket Clash Champions',
+          gameSlug: 'cricket',
+          result: 'loss',
+          betAmount: widget.entryFee,
+          payoutAmount: 0.0,
+          scoreDetails: {'reason': 'Player exited match / surrendered'},
+        );
+      } catch (_) {}
+      widget.onGameFinished?.call();
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ballsLeft = totalBalls - ballsBowled;
     final runsNeeded = max(0, targetScore - score);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cricket Clash T20'),
-        backgroundColor: bg,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleForfeitQuit();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _handleForfeitQuit,
+          ),
+          title: const Text('Cricket Clash T20'),
+          backgroundColor: bg,
         actions: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -454,8 +519,9 @@ class _CricketGameScreenState extends State<CricketGameScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _shotButton(String label, String code, IconData icon) {
     return ElevatedButton.icon(
