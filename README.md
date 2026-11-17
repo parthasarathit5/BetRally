@@ -5,7 +5,6 @@
 BetRally (WinPlay) is an enterprise real-money multi-gaming and betting application offering 20 playable games, bank-grade virtual wallet management, real-time admin monitoring, and instant WhatsApp escrow support. It combines a **Flutter** app with a **Django REST Framework** backend and a **PostgreSQL (Supabase)** database.
 
 🌐 **Live Demo:** [nexlyn-8fd9c.web.app](https://nexlyn-8fd9c.web.app/)  
-⚡ **Backend API:** [betrally.onrender.com](https://betrally.onrender.com/)  
 💬 **Admin WhatsApp:** [+91 7780383832](https://wa.me/917780383832)
 
 > This repository (`BetRally`) contains the Flutter app, the Django REST backend, and a full 1,800 automated testing suite.
@@ -135,15 +134,6 @@ venv\Scripts\activate
 source venv/bin/activate
 
 pip install -r requirements.txt
-```
-
-Create a `.env` file with your own values:
-
-```env
-SECRET_KEY=your-django-secret-key
-DEBUG=True
-DATABASE_URL=postgresql://postgres.zcslpyqbusbdsggrdtma:Supabase%40123@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres
-ADMIN_WHATSAPP_NUMBER=+917780383832
 ```
 
 Then run:
